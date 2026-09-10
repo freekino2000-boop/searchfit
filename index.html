@@ -347,21 +347,42 @@ const AXES = [
 ];
 
 /* ── 1. 파싱 ──────────────────────────────────── */
+/* 언론사 페이지에서 딸려 오는 안내·구독 문구. 본문이 아니다 */
+const NOISE_LINE = /(글자크기|기사의 본문 내용은|무단전재|재배포\s*금지|저작권자\s*©|댓글\s*\d+|좋아요\s*\d+|SNS\s*로그인|구독하고|구독중|주요\s*뉴스를 메인|섹션으로 분류|기사의 섹션 정보|언론사에서 선정|아웃링크|언론사홈|프린트하기|스크랩|^닫기$)/;
+function isNoiseLine(l){
+  const t=String(l).trim();
+  return !!t && NOISE_LINE.test(t) && t.length<120;
+}
+/* [[속보] 제목](url) 처럼 대괄호가 한 단계 중첩된 링크까지 잡는다 */
+const MD_LINK = /\[(?:[^\[\]]|\[[^\]]*\])*\]\([^)]*\)/g;
+const ENTITY = {'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#39;':"'",'&apos;':"'",'&nbsp;':' '};
+function decodeEntities(t){
+  return String(t).replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, m=>ENTITY[m]||m);
+}
 function parse(raw){
-  const text = String(raw||'').replace(/\r/g,'').trim();
+  const text = decodeEntities(String(raw||'').replace(/\r/g,'')).trim();
   const lines = text.split('\n');
   const headings = lines.filter(l=>/^#{1,6}\s/.test(l))
     .map(l=>({level:l.match(/^#+/)[0].length, text:l.replace(/^#+\s*/,'').trim()}));
   const images = (text.match(/!\[[^\]]*\]\([^)]+\)/g)||[]);
   // 문장·문단으로 다룰 때는 마크다운 기호를 걷어낸다. 남겨두면 요약·재작성본에 '*'가 따라붙는다
+  const isLinkLine = t => {
+    const b=String(t).replace(/^\s*([-*•]|\d+[.)])\s*/,'').trim();
+    if(!b) return false;
+    const lc=(b.match(MD_LINK)||[]).join('').length;
+    return lc/b.length > 0.6;      // 줄 대부분이 링크 = 관련기사·메뉴이지 본문이 아니다
+  };
   const strip = t => String(t)
     .replace(/^#{1,6}\s*/,'')
     .replace(/^\s*([-*•]|\d+[.)])\s+/,'')
     .replace(/\*\*([^*]+)\*\*/g,'$1')
+    .replace(/(?:^|(?<=\s))_([^_]+)_(?=\s|$|[.,·)])/g,'$1')
     .replace(/!\[([^\]]*)\]\([^)]*\)/g,'')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g,'$1')
+    .replace(MD_LINK, m => m.slice(1, m.lastIndexOf('](')))
     .trim();
-  const plain = text.split('\n').map(strip).join('\n');
+  const plain = text.split('\n')
+    .map(l => (isLinkLine(l) || isNoiseLine(l)) ? '' : strip(l))
+    .join('\n');
   const title = (headings.find(h=>h.level===1)||{}).text || (lines.find(l=>l.trim())||'').replace(/^#+\s*/,'').trim();
   const headTexts = new Set(headings.map(h=>h.text).concat([title]));
   // 제목·소제목 줄은 본문 문단이 아니다 — 리드 문단·메타 추출이 제목으로 오염된다
@@ -375,6 +396,7 @@ function parse(raw){
   for(const raw of lines){
     const h = raw.match(/^(#{2,6})\s+(.*)$/);
     if(h){ sections.push(cur); cur={heading:h[2].trim(), paras:[]}; continue; }
+    if(isLinkLine(raw) || isNoiseLine(raw)) continue;
     const t = strip(raw);
     if(!t || headTexts.has(t)) continue;
     const last = cur.paras[cur.paras.length-1];
@@ -553,8 +575,10 @@ function draft(d,kw){
   // 키워드 구성어의 절반 이상이 이미 제목에 있으면 원제를 살린다 — 통째로 덧붙이면 문장이 깨진다
   const kt = tokens(kw), hit = kt.filter(w=>base.includes(w)).length;
   const title = clip((kt.length && hit/kt.length >= 0.5) ? base : `${kw} ${base}`, 40);
-  const numSent = d.sentences.filter(s=>/\d/.test(s)).sort((a,b)=>b.length-a.length);
-  const tldr = (numSent.slice(0,3).length?numSent.slice(0,3):d.sentences.slice(0,3)).map(s=>clip(s,90));
+  // 잘린 문장은 스니펫으로 쓰이지 못한다 — 40~140자 완결 문장을 우선 고르고, 수치가 든 것을 앞세운다
+  const fit = d.sentences.filter(x=>x.length>=40 && x.length<=140);
+  const ranked = [...fit.filter(x=>/\d/.test(x)), ...fit.filter(x=>!/\d/.test(x))];
+  const tldr = (ranked.length ? ranked : d.sentences.map(x=>clip(x,140))).slice(0,3);
   const qs = [
     `${kw}${J(kw,'란')} 무엇인가요?`,
     `${kw}${J(kw,'이')} 왜 중요한가요?`,
@@ -837,6 +861,33 @@ $('#popBody').addEventListener('click',e=>{
 
 /* ── 7. 동작 ──────────────────────────────────── */
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800);}
+/* 워드·한글에 붙일 때 '##'이 글자로 남지 않도록, 서식 있는 형태(HTML)와
+   기호 없는 순수 텍스트를 함께 클립보드에 넣는다. */
+function plainText(md){
+  return cleanMd(md).split('\n').map(l=>{
+    const h=l.match(/^(#{1,6})\s+(.*)$/);            if(h) return h[2];
+    const q=l.match(/^>\s?(.*)$/);                    if(q!==null) return q[1].replace(/^-\s+/,'· ').replace(/\*\*/g,'');
+    const b=l.match(/^\s*([-*•]|\d+[.)])\s+(.*)$/);   if(b) return '· '+b[2];
+    return l;
+  }).join('\n').replace(/\*\*/g,'')
+    .replace(/(?:^|(?<=\s))_([^_]+)_(?=\s|$|[.,·)])/gm,'$1')
+    .replace(/\n{3,}/g,'\n\n').trim()+'\n';
+}
+async function copyArticle(md,label){
+  const clean = cleanMd(md);
+  const html = `<meta charset="utf-8"><div style="font-family:'맑은 고딕',sans-serif;line-height:1.7">${mdToHtml(clean)}</div>`;
+  const text = plainText(md);
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html],{type:'text/html'}),
+      'text/plain': new Blob([text],{type:'text/plain'}),
+    })]);
+    toast((label||'')+' 복사했습니다 — 워드·한글에 서식 그대로 붙습니다');
+  }catch(e){
+    try{ await navigator.clipboard.writeText(text); toast((label||'')+' 복사했습니다'); }
+    catch(e2){ toast('복사 실패'); }
+  }
+}
 /* 화면 표기(축 마커)는 편집용이다 — 밖으로 나가는 텍스트에는 남기지 않는다 */
 function cleanMd(md){
   return String(md||'')
@@ -906,10 +957,8 @@ function lineScore(l){
   if(linkChars/t.length > 0.4) return -1;
   return t.length>=40 ? 2 : (t.length>=15 ? 0.5 : -0.2);
 }
-/* 언론사 페이지에 공통으로 박혀 있는 UI 안내 문구 — 본문이 아니다 */
-const UI_NOISE = /(글자크기|기사의 본문 내용은|무단전재|재배포\s*금지|저작권자\s*©|댓글\s*\d+|좋아요\s*\d+|SNS\s*로그인|구독하기|공유하기|프린트하기|스크랩)/;
 function extractBody(md){
-  const lines=md.split('\n').filter(l=>!(l.trim() && UI_NOISE.test(l) && l.trim().length<60));
+  const lines=md.split('\n').filter(l=>!isNoiseLine(l));
   const w=lines.map(lineScore);
   let bs=-Infinity, ba=0, bb=0, cur=0, start=0;
   for(let i=0;i<w.length;i++){
@@ -1045,7 +1094,7 @@ $('#viewSeg').onclick=e=>{
   [...$('#viewSeg').children].forEach(x=>x.setAttribute('aria-selected', x===b));
   renderOut();
 };
-$('#btnCopy').onclick=()=>{ if(!MD&&!AIMD) return toast('먼저 진단을 실행하세요'); copy(cleanMd(AIMD||MD),'완성 기사'); };
+$('#btnCopy').onclick=()=>{ if(!MD&&!AIMD) return toast('먼저 진단을 실행하세요'); copyArticle(AIMD||MD,'완성 기사'); };
 
 /* 리포트 저장 */
 function toMarkdown(){
@@ -1224,6 +1273,22 @@ function selfTest(){
   A(!/<\!--/.test(cleanMd(dirty)),'복사본에 주석 없음');
   A(!/\n{3,}/.test(cleanMd(dirty)),'표기 제거 후 빈 줄 정리');
   A(cleanMd(dirty).startsWith('# '),'복사본은 제목부터 시작');
+  // 붙여넣기용 순수 텍스트에는 마크다운 기호가 없어야 한다
+  const pt=plainText(dirty);
+  A(!/^#|^>|\*\*/m.test(pt),'순수 텍스트에 마크다운 기호 없음');
+  A(pt.startsWith('중고 거래 플랫폼'),'제목이 기호 없이 첫 줄');
+  A(pt.includes('· '),'목록은 가운뎃점으로');
+  A(!/_[^_]+_/.test(pt),'이탤릭 기호 제거');
+  A(draft(good,'수수료').tldr.every(x=>!x.endsWith('…')),'요약은 잘리지 않은 완결 문장');
+  A(draft(good,'수수료').tldr.every(x=>x.length<=140),'요약 문장 140자 이내');
+  // 링크 덩어리·언론사 안내 문구는 본문에서 빠진다
+  const nz=parse(['# 진짜 제목','','[[속보] 다른 기사 제목입니다](https://a.b/1)','','구독 경향신문 구독하고 메인에서 바로 만나보세요!','','이 기사는 언론사에서 정치 섹션으로 분류했습니다.','','실제 본문 문장이다. 후보자 지명 이후 21일이 걸렸다.'].join('\n'));
+  A('[[속보] 제목](https://a.b/1)'.match(MD_LINK).length===1,'말머리 붙은 링크 인식');
+  A(!nz.plain.includes('속보'),'관련기사 링크 줄 제외');
+  A(!nz.plain.includes('구독'),'구독 안내 제외');
+  A(!nz.plain.includes('섹션으로 분류'),'섹션 안내 제외');
+  A(nz.plain.includes('실제 본문 문장'),'본문은 남는다');
+  A(parse('제목 &quot;인용&quot; &amp; 기타').plain.includes('"인용"'),'HTML 엔티티 복원');
   // 공유 링크 인코딩
   const bytes=new TextEncoder().encode('한글 원문 test "quote" & <tag>');
   A(new TextDecoder().decode(ub64(b64u(bytes)))==='한글 원문 test "quote" & <tag>','공유 링크 인코딩 왕복');
