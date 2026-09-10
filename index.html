@@ -159,6 +159,10 @@ body.resizing{cursor:col-resize;user-select:none}
 .doc .alt{font-size:12.5px;color:var(--on-surface-var);border-left:3px solid var(--outline-soft);padding-left:var(--s3);margin-bottom:var(--s5)}
 .doc .flag{color:var(--warn)}
 /* 축별 색 — 진단 카드·점수칩과 같은 색을 쓴다 */
+.todo{border:1px solid var(--warn);border-radius:var(--r-l);padding:var(--s4) var(--s5);margin-top:var(--s8);background:#fdf6f6}
+.todo h2{margin:0 0 var(--s3);font-size:15px;color:var(--warn)}
+.todo ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.75}
+.todo li{margin-bottom:6px}
 .axwrap{--ax:var(--aeo);border-left:3px solid var(--ax);padding-left:16px;margin:0 0 var(--s6);color:var(--ax)}
 .axwrap.ax-seo{--ax:var(--seo)} .axwrap.ax-geo{--ax:var(--geo)}
 .axwrap.ax-aeo{--ax:var(--aeo)} .axwrap.ax-neo{--ax:var(--neo)}
@@ -615,41 +619,133 @@ function draft(d,kw){
 
 /* ── 4. 재작성 문서 조립 ──────────────────────────
    기사에 실제로 실릴 내용만 만든다. 무엇을 바꿨는지 함께 기록해 [체크]에서 보여준다. */
-function composeMd(d,kw,dr){
-  const L=[], ch=[];
-  const AX=(axis,why)=>L.push(`<\!--SF:${axis}|${why}-->`);   // axis: 'AEO' 또는 'AEO,GEO'
-  if(dr.title!==d.title){
-    ch.push(`제목 교체 — "${dr.title}"`);
-    AX('SEO,NEO','타깃 키워드를 제목 앞쪽에 넣어 검색 노출을 잡는 자리입니다. 네이버는 25자에서 잘리니 길이도 함께 보세요.');
+/* 긴 문단은 문장 경계로 쪼갠다 — 네이버 모바일 가독성 기준(문단 200자) */
+function splitLong(t,max){
+  const p=String(t).trim();
+  if(p.length<=max) return [p];
+  const sents=p.split(/(?<=[.!?。？！])\s+/).filter(Boolean);
+  const out=[]; let buf='';
+  for(const x of sents){
+    if(buf && (buf+' '+x).length>max){ out.push(buf.trim()); buf=x; }
+    else buf += (buf?' ':'')+x;
   }
-  L.push(`# ${dr.title}`,'','<\!--SF:/-->');
+  if(buf.trim()) out.push(buf.trim());
+  return out;
+}
+const failed = (r,axis,label) => (r[axis].items.find(i=>i.t.startsWith(label))||{ok:true}).ok===false;
+
+/* 진단에서 미달로 나온 항목을 축별로 재작성본에 반영한다.
+   규칙으로 고칠 수 있는 것은 고치고, 사실 추가가 필요한 것은 채울 자리와 지시를 남긴다. */
+function composeMd(d,kw,dr,r){
+  const L=[], ch=[], todo=[];
+  const AX=(axis,why)=>L.push(`<\!--SF:${axis}|${why}-->`);
+  const END=()=>L.push('<\!--SF:/-->');
+  const F=(axis,label)=>r ? failed(r,axis,label) : false;
+
+  /* ── 제목 (SEO·NEO) ── */
+  const titleBad = F('seo','제목 길이') || F('neo','제목');
+  if(dr.title!==d.title || titleBad){
+    if(dr.title!==d.title) ch.push(`제목 교체 — "${dr.title}"`);
+    AX('SEO,NEO', titleBad
+      ? `제목이 권장 길이를 벗어났습니다(현재 ${dr.title.length}자). 구글은 25~35자, 네이버는 25자 안팎에서 잘립니다. 핵심 키워드를 앞으로 당기고 군더더기를 덜어내세요.`
+      : '타깃 키워드를 제목 앞쪽에 넣어 검색 노출을 잡는 자리입니다.');
+    if(titleBad) ch.push(`제목 길이 ${dr.title.length}자 — 25~35자로 다듬을 것 (SEO·NEO)`);
+  }
+  L.push(`# ${dr.title}`,''); END();
+
+  /* ── 요약 (AEO·GEO) ── */
   if(dr.tldr.length){
-    ch.push(`상단 핵심 요약 ${dr.tldr.length}줄 추가 (AEO 스니펫용)`);
+    ch.push(`상단 핵심 요약 ${dr.tldr.length}줄 추가 (AEO)`);
     AX('AEO,GEO','검색 답변·AI 요약으로 그대로 발췌되는 자리입니다. 수치가 든 문장을 우선 골라 인용 가능성을 높였습니다.');
     L.push(`> **핵심 ${dr.tldr.length}줄 요약**`);
     dr.tldr.forEach(t=>L.push(`> - ${t}`));
-    L.push('','<\!--SF:/-->');
+    L.push(''); END();
   }
-  let qc=0;
+
+  /* ── 용어 정의 (GEO) ── */
+  if(F('geo','정의 문장')){
+    ch.push(`"${kw}" 정의 자리 추가 (GEO)`);
+    AX('GEO','생성형 검색이 가장 먼저 인용하는 것이 정의 문장입니다. 한 문장으로 개념을 규정해 주세요.');
+    L.push(`## ${kw}${J(kw,'란')} 무엇인가`,'',
+      `${kw}${J(kw,'은')} [한 문장으로 정의해 주세요 — "${kw}${J(kw,'란')} …를 말한다" 형태].`,'');
+    END();
+  }
+
+  /* ── 본문 (NEO 문단 분할) ── */
+  const splitPara = F('neo','평균 문단');
+  let qc=0, splitCount=0;
   (d.secs||[]).forEach(sec=>{
     if(sec.heading){
       const q=qHeading(sec.heading);
-      if(q!==sec.heading){ qc++; AX('AEO','소제목을 실제 검색 질문 형태로 바꾼 자리입니다. 질문에 그대로 매칭돼 답변으로 뽑힙니다.'); }
-      L.push(`## ${q}`,'','<\!--SF:/-->');
-    } else {
-      AX('AEO','핵심 개념을 먼저 정의하는 도입 섹션입니다. 생성형 검색이 가장 먼저 인용하는 자리입니다.');
-      L.push(`## ${kw}${J(kw,'란')} 무엇인가`,'','<\!--SF:/-->');
+      if(q!==sec.heading){ qc++; AX('AEO','소제목을 실제 검색 질문 형태로 바꾼 자리입니다. 질문에 그대로 매칭돼 답변으로 뽑힙니다.'); L.push(`## ${q}`,''); END(); }
+      else L.push(`## ${q}`,'');
+    } else if(!F('geo','정의 문장')){
+      AX('AEO','핵심 개념을 먼저 정의하는 도입 섹션입니다.');
+      L.push(`## ${kw}${J(kw,'란')} 무엇인가`,''); END();
     }
-    (sec.paras.length?sec.paras:['[본문 보강 필요]']).forEach(p=>L.push(p,''));
+    (sec.paras.length?sec.paras:['[본문 보강 필요]']).forEach(p=>{
+      const parts = splitPara ? splitLong(p,200) : [p];
+      if(parts.length>1) splitCount += parts.length-1;
+      parts.forEach(x=>L.push(x,''));
+    });
   });
   if(qc) ch.push(`소제목 ${qc}개를 질문형으로 변환 (AEO)`);
-  if(!(d.secs||[]).some(x=>x.heading)) ch.push('소제목이 없어 도입 섹션을 새로 세움');
+  if(splitCount) ch.push(`긴 문단 ${splitCount}곳을 문장 경계로 분할 (NEO 모바일 가독성)`);
+  ch.push('헤딩을 h1 하나 + h2 구조로 정리 (SEO)');
+
+  /* ── 핵심 정리 리스트 (GEO 구조화 블록) ── */
+  if(F('geo','구조화 블록')){
+    ch.push('핵심 정리 목록 추가 (GEO 구조화 블록)');
+    AX('GEO','사실을 목록으로 분해해 두면 생성형 엔진이 항목 단위로 인용합니다.');
+    L.push('## 핵심 정리','');
+    const facts = d.sentences.filter(x=>/\d/.test(x)).slice(0,3);
+    (facts.length?facts:['[핵심 사실을 3개로 정리해 주세요]']).forEach(x=>L.push(`- ${x}`));
+    L.push(''); END();
+  }
+
+  /* ── FAQ (AEO) ── */
   const answered = dr.faq.filter(f=>!f.a.startsWith('(')).length;
-  ch.push(`자주 묻는 질문 ${dr.faq.length}개 추가 — 본문 근거 ${answered}개, 직접 작성 필요 ${dr.faq.length-answered}개`);
-  AX('AEO','자주 묻는 질문 블록입니다. 답변 엔진이 질문-답 쌍을 통째로 가져가며, FAQPage 구조화 데이터의 재료가 됩니다.');
+  ch.push(`자주 묻는 질문 ${dr.faq.length}개 추가 — 본문 근거 ${answered}개, 직접 작성 필요 ${dr.faq.length-answered}개 (AEO)`);
+  AX('AEO','답변 엔진이 질문-답 쌍을 통째로 가져가며, FAQPage 구조화 데이터의 재료가 됩니다.');
   L.push('## 자주 묻는 질문','');
   dr.faq.forEach(f=>{ L.push(`### ${f.q}`, f.a, ''); });
-  return {md:L.join('\n'), changes:ch};
+  END();
+
+  /* ── 출처·기준 시점 (GEO·NEO) ── */
+  const needSrc = F('geo','출처 표기'), needDate = F('neo','발행 시점'), needBy = F('neo','작성자');
+  if(needSrc || needDate || needBy){
+    ch.push('출처·기준 시점 섹션 추가 (GEO·NEO)');
+    AX('GEO,NEO','근거와 시점, 작성 주체를 밝혀야 신뢰 문서로 분류되고 인용도 됩니다.');
+    L.push('## 출처와 기준 시점','');
+    L.push(`- 기준 시점: ${new Date().toISOString().slice(0,10)}`);
+    L.push(`- 작성: ${needBy ? '[기자·필자 또는 기관명을 넣으세요]' : (d.author?'원문 표기 유지':'[작성 주체를 넣으세요]')}`);
+    L.push(`- 근거 자료: ${needSrc ? '[원문·통계·발표자료 출처를 넣으세요]' : d.sources.slice(0,3).join(', ')}`,'');
+    END();
+  }
+
+  /* ── 사실 추가가 필요해 규칙으로 못 고치는 것 ── */
+  if(r){
+    const add=(axis,label,how)=>{ if(failed(r,axis,label)) todo.push(`**${axis.toUpperCase()}** ${how}`); };
+    add('seo','본문 분량','본문을 900자 이상으로 늘리세요. 배경·파급·전망 중 빠진 축을 보강합니다.');
+    add('seo','첫 문단에 키워드',`첫 문단 150자 안에 "${kw}"가 자연스럽게 들어가게 리드를 고쳐 쓰세요.`);
+    add('seo','키워드 밀도','키워드 반복이 권장 구간을 벗어났습니다. 대명사·유의어로 바꾸거나 보강하세요.');
+    add('seo','링크','근거 문서로 나가는 링크를 넣고, 앵커텍스트에 대상 이름을 쓰세요("여기" 금지).');
+    add('seo','이미지','대표 이미지를 넣고 alt에 내용을 설명하세요.');
+    add('geo','인용 가능한 수치','구체 수치를 3개 이상 넣으세요. 생성형 엔진이 집어가는 1순위입니다.');
+    add('geo','직접 인용','관계자·전문가 발언을 큰따옴표로 인용하세요.');
+    add('geo','권위 주체','직함과 소속을 밝힌 근거 인물을 넣으세요.');
+    add('neo','이미지','네이버 스마트블록 노출에는 이미지가 필요합니다.');
+    add('neo','키워드 밀도','밀도가 3%를 넘으면 네이버 어뷰징 필터에 걸립니다.');
+    add('aeo','첫 문장','첫 문장을 40~140자 직답으로 바꾸면 스니펫을 선점합니다.');
+    if(failed(r,'aeo','구조화 데이터')) todo.push('**AEO** JSON-LD는 [발행 메타] 탭에서 만들어 페이지 head에 붙이세요.');
+  }
+  if(todo.length){
+    L.push('<\!--SF:TODO-->');
+    L.push('## 남은 보강 항목 — 사람이 채워야 합니다','');
+    todo.forEach(t=>L.push(`- ${t}`));
+    L.push('');
+  }
+  return {md:L.join('\n'), changes:ch, todo};
 }
 
 /* 최소 마크다운 렌더러 — 이 앱이 만들어내는 문법(제목·인용·목록·굵게)만 처리한다 */
@@ -683,6 +779,7 @@ function mdToHtml(md){
   };
   for(const raw of lines){
     const l=raw;
+    if(/^<\!--SF:TODO-->$/.test(l)){ flush(); closeAx(); out.push('<div class="todo">'); openAx=true; continue; }
     if(/^<\!--SF:\/-->$/.test(l)){ flush(); closeAx(); continue; }
     const ax=l.match(/^<\!--SF:([^|]+)\|(.*)-->$/);
     if(ax){ flush(); closeAx(); pendingAx={axis:ax[1].trim(), why:ax[2].trim()}; continue; }
@@ -973,7 +1070,8 @@ async function copyArticle(md,label){
 }
 /* 화면 표기(축 마커)는 편집용이다 — 밖으로 나가는 텍스트에는 남기지 않는다 */
 function cleanMd(md){
-  return String(md||'')
+  const cut = String(md||'').indexOf('<\!--SF:TODO-->');
+  return (cut>=0 ? String(md).slice(0,cut) : String(md||''))
     .replace(/^<\!--SF:[^>]*-->[ \t]*\n?/gm,'')
     .replace(/\n{3,}/g,'\n\n')
     .trim()+'\n';
@@ -1090,7 +1188,7 @@ async function run(){
   const r = diagnose(d,kw);
   const dr = draft(d,kw);
   LAST={d,r,dr,kw};
-  const c = composeMd(d,kw,dr);
+  const c = composeMd(d,kw,dr,r);
   MD = c.md; CHANGES = c.changes;
   renderPills(r); renderOut();
   if(OPEN==='mDiag'||OPEN==='mInput') openMenu('mDiag');
@@ -1273,12 +1371,25 @@ function selfTest(){
   A(density(good,'중고 거래 수수료')>0,'대표 토큰 밀도');
   A(thirdsHit(good,'수수료')===3,'엔티티 3구간');
   A(bestSentence(good.sentences,'우주 로켓 발사 일정은?',new Set(),'로켓')===null,'무관 문장 오매칭');
-  const cm=composeMd(good,'중고 거래 수수료',dr); const md=cm.md;
-  A(md.startsWith('# '),'재작성 문서 제목');
+  const rg=diagnose(good,'중고 거래 수수료');
+  const cm=composeMd(good,'중고 거래 수수료',dr,rg); const md=cm.md;
+  A(cleanMd(md).startsWith('# '),'재작성 문서 제목');
   A(md.includes('## 자주 묻는 질문'),'FAQ 섹션');
   A(!md.includes('@type') && !md.includes('메타 정보'),'JSON-LD·메타 블록 제거됨');
   A(cm.changes.length>=2,'변경 내역 기록: '+cm.changes.length);
   A(cm.changes.some(c=>c.includes('질문형')),'질문형 변환 기록');
+  // 네 축이 모두 재작성에 반영되는가
+  const axes = (cm.md.match(/<\!--SF:([^|]+)\|/g)||[]).join(',');
+  ['SEO','GEO','AEO','NEO'].forEach(x=>A(axes.includes(x), x+' 표기가 재작성에 반영'));
+  A(cm.todo.length>0,'미달 항목이 보강 목록으로: '+cm.todo.length+'건');
+  A(cm.md.includes('SF:TODO'),'보강 목록 마커');
+  A(!cleanMd(cm.md).includes('남은 보강 항목'),'보강 목록은 기사 복사본에서 제외');
+  A(cleanMd(cm.md).includes('## 자주 묻는 질문'),'기사 본문은 복사본에 남는다');
+  // 문단 분할
+  A(splitLong('가'.repeat(150),200).length===1,'짧은 문단은 그대로');
+  const longP='첫 문장이 여기에 있습니다. '+'두 번째 문장도 충분히 길게 이어집니다. '.repeat(16);
+  A(splitLong(longP,200).length>1,'긴 문단은 분할');
+  A(splitLong(longP,200).every(x=>x.length<=260),'분할 후 길이 관리');
   const dj=draft(parse('# 부담에도 수수료 인상\n\n수수료 부담이 커졌다는 지적이 나온다. 업계는 인상이 불가피하다고 설명했다.'),'부담');
   A(dj.faq[0].q==='부담이란 무엇인가요?','FAQ 조사 — 이란');
   A(dj.faq[1].q==='부담이 왜 중요한가요?','FAQ 조사 — 이');
@@ -1323,7 +1434,7 @@ function selfTest(){
   A(!flatten('<\!--SF:AEO|설명-->\n본문').includes('SF:AEO'),'마커는 대조에서 제외');
   A(!flatten('<\!--SF:/-->\n본문').includes('SF:'),'종료 마커도 대조에서 제외');
   // 밖으로 나가는 텍스트에는 표기가 없어야 한다
-  const dirty=composeMd(good,'중고 거래 수수료',draft(good,'중고 거래 수수료')).md;
+  const dirty=composeMd(good,'중고 거래 수수료',draft(good,'중고 거래 수수료'),rg).md;
   A(dirty.includes('SF:'),'문서에는 표기가 들어간다');
   A(!cleanMd(dirty).includes('SF:'),'복사본에서 표기 제거');
   A(!/<\!--/.test(cleanMd(dirty)),'복사본에 주석 없음');
@@ -1355,7 +1466,7 @@ function selfTest(){
   const shownSample = parse(SAMPLE);
   A(shownSample.images.length>=1 && shownSample.bullets>=5,'쇼앤 샘플 — 이미지·목록 인식');
   A(!shownSample.sentences.some(x=>/^\s*\*|\*\*/.test(x)),'문장에서 마크다운 기호 제거');
-  A(!composeMd(shownSample,'디지털 치료',draft(shownSample,'디지털 치료')).md.split('\n')
+  A(!cleanMd(composeMd(shownSample,'디지털 치료',draft(shownSample,'디지털 치료'),diagnose(shownSample,'디지털 치료')).md).split('\n')
       .filter(l=>!l.startsWith('#') && !l.startsWith('<\!--') && !l.startsWith('>'))
       .some(l=>/^\s*\*\s|\*\*/.test(l)),'재작성본에 마크다운 잔재 없음');
   A(diagnose(shownSample,'디지털 치료').geo.items[2].ok,'쇼앤 샘플 — 해요체 정의문 인식');
