@@ -240,10 +240,59 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
 .scan .sum b{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
 .scan .prog{height:2px;background:var(--track)}
 .scan .prog i{display:block;height:100%;background:var(--primary);transform-origin:left;transition:transform .2s ease-out}
+/* 진단 요약 — 축 점수가 먼저 읽히고, 그 아래로 고칠 것이 순서대로 쌓인다 */
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);padding:var(--s6)}
+.scard{background:var(--surface-2);border-radius:var(--r-l);padding:var(--s5);display:flex;flex-direction:column;gap:var(--s3);
+  transition:transform .18s cubic-bezier(.2,0,0,1)}
+.scard:hover{transform:translateY(-2px)}
+.scard header{display:flex;align-items:center;gap:var(--s2);min-width:0}
+.scard header i{width:8px;height:8px;border-radius:50%;background:var(--ax);flex:0 0 auto}
+.scard header b{font-size:14px;font-weight:700;letter-spacing:.02em}
+.scard header span{font-size:10.5px;color:var(--on-surface-var);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scard .v{display:flex;align-items:baseline;gap:var(--s2)}
+.scard .v em{font-style:normal;font-size:48px;font-weight:300;line-height:1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--ax)}
+.scard .v .g{font-size:12px;font-weight:600;color:var(--on-surface-var)}
+.scard .gauge{height:4px;border-radius:2px;background:var(--track);overflow:hidden}
+.scard .gauge span{display:block;height:100%;background:var(--ax);transform-origin:left;
+  transition:transform .5s cubic-bezier(.2,0,0,1)}
+.scard footer{font-size:11.5px;color:var(--on-surface-var);line-height:1.5}
+.scard footer b{color:var(--warn);font-weight:600}
+.block{padding:0 var(--s6) var(--s6)}
+.block h3{display:flex;align-items:baseline;gap:var(--s3);margin:0 0 var(--s4);font-size:14px;font-weight:700}
+.block h3 small{font-size:11.5px;font-weight:400;color:var(--on-surface-var)}
+.dist{display:flex;flex-direction:column;gap:var(--s2)}
+/* 막대가 화면 폭을 다 쓰면 길이 차이가 눈에 안 들어온다 — 읽히는 길이로 묶는다 */
+.dr{display:grid;grid-template-columns:72px minmax(0,420px) 40px;align-items:center;gap:var(--s3)}
+.dr.zero{opacity:.45}
+.dl{font-size:12px;color:var(--on-surface-var)}
+.db{height:20px;border-radius:var(--r-m);background:var(--track);overflow:hidden}
+.db i{display:block;height:100%;border-radius:var(--r-m);transform-origin:left;
+  transition:transform .5s cubic-bezier(.2,0,0,1)}
+.dn{font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.weak{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
+.weak li{display:grid;grid-template-columns:28px 1fr;gap:var(--s2) var(--s3);align-items:center;
+  padding:var(--s3) var(--s4);border-radius:var(--r-m);transition:background .15s}
+.weak li:hover{background:var(--surface-2)}
+.weak .rk{grid-row:span 3;align-self:start;width:28px;height:28px;border-radius:50%;background:var(--track);
+  display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--on-surface-var);font-variant-numeric:tabular-nums}
+.weak .wt{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+.weak .wt b{font-size:13.5px;font-weight:600}
+.weak .wn{font-size:11.5px;color:var(--warn);font-weight:600;font-variant-numeric:tabular-nums}
+.weak .wb{height:4px;max-width:420px;border-radius:2px;background:var(--track);overflow:hidden}
+.weak .wb i{display:block;height:100%;background:var(--ax);transform-origin:left;
+  transition:transform .5s cubic-bezier(.2,0,0,1)}
+.weak .wf{margin:0;font-size:12px;color:var(--on-surface-var);line-height:1.6}
+@media (prefers-reduced-motion:reduce){
+  .scard,.scard .gauge span,.db i,.weak .wb i{transition:none}
+  .scard:hover{transform:none}
+}
 .stbl{width:100%;border-collapse:collapse;font-size:13px}
 .stbl th{position:sticky;top:0;z-index:1;background:var(--surface);text-align:left;font-weight:500;font-size:11.5px;letter-spacing:.04em;
   color:var(--on-surface-var);padding:var(--s3) var(--s4);border-bottom:1px solid var(--outline-soft);cursor:pointer;white-space:nowrap;user-select:none}
 .stbl th:hover{color:var(--on-surface)}
+.stbl th:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;color:var(--on-surface)}
+.stbl th:active{color:var(--primary)}
 .stbl th[aria-sort]{color:var(--primary)}
 .stbl td{padding:var(--s3) var(--s4);border-bottom:1px solid var(--outline-soft);vertical-align:top}
 .stbl tbody tr:hover{background:var(--surface-2)}
@@ -374,6 +423,10 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
     <div class="scan" id="scanWrap" hidden>
       <div class="ph">
         <span class="tag">SCAN</span><span class="nm">일괄 진단</span>
+        <div class="seg" id="scanSeg" hidden>
+          <button aria-selected="true" data-sv="sum">진단 요약</button>
+          <button aria-selected="false" data-sv="list">기사 목록</button>
+        </div>
         <span class="sp"></span>
         <span class="cnt" id="scanCnt">0건</span>
         <button class="btn text sm" id="btnScanStop" hidden>중단</button>
@@ -1070,7 +1123,8 @@ const MENUS = {
 };
 let OPEN=null;
 const STATE = {url:'', kw:'', brand:''};
-const SCAN = {src:'', kw:'', max:30, rows:[], sort:'avg', dir:1, running:false, done:0, total:0};
+const SCAN = {src:'', kw:'', max:30, rows:[], sort:'avg', dir:1, running:false, done:0, total:0,
+              view:'sum', fix:null};
 let MODE='text';
 /* 스캔은 문서 두 장이 아니라 표가 화면을 차지한다 */
 function showScan(on){
@@ -1097,7 +1151,7 @@ Object.keys(MENUS).forEach(k=>{ $('#'+k).onclick=()=>openMenu(k); });
 $('#popX').onclick=closeMenu;
 $('#mReset').onclick=()=>{
   $('#src').value=''; STATE.url=STATE.kw=STATE.brand=''; LAST=null; MD=''; CHANGES=[];
-  SCAN.running=false; SCAN.src=SCAN.kw=''; SCAN.rows=[]; SCAN.done=SCAN.total=0;
+  SCAN.running=false; SCAN.src=SCAN.kw=''; SCAN.rows=[]; SCAN.done=SCAN.total=0; SCAN.fix=null; SCAN.view='sum';
   renderPills(null); renderOut(); renderScan(); syncCount(); showScan(false); closeMenu(); toast('초기화했습니다');
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMenu(); });
@@ -1381,6 +1435,14 @@ function saveMd(){
 }
 
 /* ── 7-1. 일괄 진단(SF Scan) ──────────────────── */
+/* 집계 화면에 쓰는 짧은 항목명. diagnose가 만드는 문구에는 실측값이 섞여 있어
+   그대로는 묶이지 않는다. 순서는 diagnose와 같아야 하며 selfTest가 개수를 지킨다. */
+const ITEM_LABELS = {
+  seo:['제목 길이','제목 키워드','첫 문단 키워드','본문 분량','헤딩 구조','키워드 밀도','외부 링크','이미지·alt'],
+  geo:['인용 가능 수치','출처 표기','정의 문장','구조화 블록','직접 인용','권위 주체'],
+  aeo:['질문형 소제목','첫 문장 길이','FAQ 섹션','요약 블록','불릿 목록','구조화 데이터'],
+  neo:['제목 길이(네이버)','이미지','키워드 밀도(네이버)','문단 길이','발행 시점','작성자 표기'],
+};
 const looksSitemap = s => /\.xml(\?|$)/i.test(s) || /sitemap/i.test(s);
 const scColor = v => v>=70?'var(--ok)' : v>=50?'var(--partial)' : 'var(--warn)';
 /* 사이트맵에서 주소를 꺼낸다. 리더가 XML을 마크다운으로 바꿔도 주소 자체는 남으므로
@@ -1424,6 +1486,9 @@ async function scanRun(){
       const kw = SCAN.kw.trim() || autoKeyword(d);
       const r = diagnose(d,kw);
       row.title=d.title||'(제목 없음)'; row.chars=d.chars; row.kw=kw;
+      row.items={}; AXES.forEach(a=>row.items[a.k]=r[a.k].items.map(c=>c.s));
+      // 보완 지시문은 기사와 무관하게 같다 — 한 번만 챙겨 둔다
+      if(!SCAN.fix){ SCAN.fix={}; AXES.forEach(a=>SCAN.fix[a.k]=r[a.k].items.map(c=>c.f)); }
       AXES.forEach(a=>row[a.k]=r[a.k].score);
       row.avg = Math.round(AXES.reduce((s,a)=>s+r[a.k].score,0)/AXES.length);
     }catch(e){
@@ -1444,25 +1509,91 @@ function scanCmp(a,b){
   if(bv==null) return -1;
   return typeof av==='string' ? SCAN.dir*av.localeCompare(bv) : SCAN.dir*(av-bv);
 }
+/* 매체 전체를 한 덩어리로 집계한다 — 기사 한 건이 아니라 편집국이 볼 숫자다 */
+function scanAgg(){
+  const ok = SCAN.rows.filter(r=>r.items);
+  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : 0;
+  const axis = {};
+  const weak = [];
+  AXES.forEach(a=>{
+    axis[a.k] = {
+      score: Math.round(mean(ok.map(r=>r[a.k]))),
+      under: ok.filter(r=>r[a.k]<70).length,          // 70점 미만을 보완 대상으로 본다
+    };
+    ITEM_LABELS[a.k].forEach((label,i)=>{
+      const vals = ok.map(r=>r.items[a.k][i]);
+      const miss = vals.filter(v=>v<1).length;
+      weak.push({ax:a, label, miss, rate: ok.length?miss/ok.length:0, avg: mean(vals),
+                 fix: (SCAN.fix&&SCAN.fix[a.k]&&SCAN.fix[a.k][i])||'' });
+    });
+  });
+  // 많이 틀린 것 먼저, 같으면 더 낮게 받은 것 먼저
+  weak.sort((x,y)=> y.rate-x.rate || x.avg-y.avg);
+  const dist = [0,0,0,0];                             // 90+ / 70~89 / 50~69 / 50미만
+  ok.forEach(r=>dist[r.avg>=90?0:r.avg>=70?1:r.avg>=50?2:3]++);
+  return {ok, axis, weak, dist, total: ok.length, failed: SCAN.rows.length-ok.length};
+}
+function renderScanSummary(g){
+  const pct = n => g.total ? Math.round(n/g.total*100) : 0;
+  const cards = AXES.map(a=>{
+    const s = g.axis[a.k];
+    return `<article class="scard" style="--ax:${a.color}">
+      <header><i></i><b>${a.name}</b><span>${a.full}</span></header>
+      <div class="v"><em>${s.score}</em><span class="g">${gradeOf(s.score)}</span></div>
+      <div class="gauge"><span style="transform:scaleX(${s.score/100})"></span></div>
+      <footer>${s.under ? `보완 대상 <b>${s.under}건</b> · 전체의 ${pct(s.under)}%` : '전 기사 70점 이상'}</footer>
+    </article>`;
+  }).join('');
+  const bars = [
+    {k:'90점 이상', n:g.dist[0], c:'var(--ok)'},
+    {k:'70~89', n:g.dist[1], c:'var(--ok)'},
+    {k:'50~69', n:g.dist[2], c:'var(--partial)'},
+    {k:'50 미만', n:g.dist[3], c:'var(--warn)'},
+  ];
+  const maxN = Math.max(1, ...bars.map(b=>b.n));
+  const dist = `<section class="block">
+    <h3>기사 점수 분포<small>평균 ${Math.round(g.ok.reduce((s,r)=>s+r.avg,0)/(g.total||1))}점 · ${g.total}건</small></h3>
+    <div class="dist">${bars.map(b=>`<div class="dr${b.n?'':' zero'}">
+      <span class="dl">${b.k}</span>
+      <div class="db"><i style="background:${b.c};transform:scaleX(${b.n/maxN})"></i></div>
+      <span class="dn">${b.n}</span>
+    </div>`).join('')}</div>
+  </section>`;
+  const top = g.weak.filter(w=>w.miss>0).slice(0,8);
+  const weak = `<section class="block">
+    <h3>보완 우선순위<small>실패한 기사가 많은 항목부터</small></h3>
+    ${top.length ? `<ol class="weak">${top.map((w,i)=>`<li style="--ax:${w.ax.color}">
+      <span class="rk">${i+1}</span>
+      <div class="wt"><span class="axtag ax-${w.ax.k}">${w.ax.name}</span><b>${esc(w.label)}</b>
+        <span class="wn">${w.miss}건 미달 · ${Math.round(w.rate*100)}%</span></div>
+      <div class="wb"><i style="transform:scaleX(${w.rate})"></i></div>
+      <p class="wf">${esc(w.fix)}</p>
+    </li>`).join('')}</ol>` : '<p class="hint">모든 항목을 통과했습니다.</p>'}
+  </section>`;
+  return `<div class="sgrid">${cards}</div>${dist}${weak}`;
+}
 function renderScan(){
   $('#scanCnt').textContent = SCAN.total ? `${SCAN.done}/${SCAN.total}건` : `${SCAN.rows.length}건`;
+  $('#scanSeg').hidden = !SCAN.rows.length;
   if(!SCAN.rows.length && !SCAN.running){
     $('#scanBody').innerHTML='<div class="empty">왼쪽 [스캔] 메뉴에 기사 URL 목록이나 사이트맵 주소를 넣으세요.</div>';
     return;
   }
-  const ok = SCAN.rows.filter(r=>r.avg!=null);
-  const avgOf = k => ok.length ? Math.round(ok.reduce((s,r)=>s+r[k],0)/ok.length) : 0;
-  const bad = SCAN.rows.length-ok.length;
-  const sum = `<div class="sum">
-    <div><span>진단</span><b>${ok.length}</b></div>
-    ${AXES.map(a=>`<div><span>${a.name}</span><b style="color:${a.color}">${avgOf(a.k)}</b></div>`).join('')}
-    <div><span>평균</span><b>${avgOf('avg')}</b></div>
-    ${bad?`<div><span>실패</span><b style="color:var(--warn)">${bad}</b></div>`:''}
-  </div>`;
   const prog = SCAN.total && SCAN.done<SCAN.total
     ? `<div class="prog"><i style="transform:scaleX(${SCAN.done/SCAN.total})"></i></div>` : '';
+  const g = scanAgg();
+  const head = `<div class="sum">
+    <div><span>진단</span><b>${g.total}</b></div>
+    <div><span>평균</span><b>${g.total?Math.round(g.ok.reduce((s,r)=>s+r.avg,0)/g.total):0}</b></div>
+    ${AXES.map(a=>`<div><span>${a.name}</span><b style="color:${a.color}">${g.axis[a.k].score}</b></div>`).join('')}
+    ${g.failed?`<div><span>수집 실패</span><b style="color:var(--warn)">${g.failed}</b></div>`:''}
+  </div>`;
+  if(SCAN.view==='sum'){
+    $('#scanBody').innerHTML = prog + renderScanSummary(g);
+    return;
+  }
   const rows = SCAN.rows.slice().sort(scanCmp);
-  const th=(k,label,cls)=>`<th data-s="${k}"${cls?` class="${cls}"`:''}${
+  const th=(k,label,cls)=>`<th data-s="${k}" tabindex="0" role="columnheader"${cls?` class="${cls}"`:''}${
     SCAN.sort===k?` aria-sort="${SCAN.dir>0?'ascending':'descending'}"`:''}>${label}</th>`;
   const body = rows.map(r=>`<tr>
     <td class="ti">${r.err
@@ -1473,7 +1604,7 @@ function renderScan(){
     <td class="n"><b>${r.avg==null?'—':r.avg}</b></td>
     <td class="n">${r.chars==null?'—':r.chars}</td>
   </tr>`).join('');
-  $('#scanBody').innerHTML = sum+prog+`<table class="stbl"><thead><tr>
+  $('#scanBody').innerHTML = head+prog+`<table class="stbl"><thead><tr>
     ${th('title','기사','ti')}${AXES.map(a=>th(a.k,a.name,'n')).join('')}${th('avg','평균','n')}${th('chars','분량','n')}
   </tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -1487,14 +1618,29 @@ function scanCsv(){
     `searchfit-scan-${new Date().toISOString().slice(0,10)}.csv`);
 }
 $('#btnScanCsv').onclick=scanCsv;
+$('#scanSeg').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sv]'); if(!b) return;
+  SCAN.view=b.dataset.sv;
+  $('#scanSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected', x===b));
+  renderScan();
+});
 $('#btnScanStop').onclick=()=>{ SCAN.running=false; toast('중단 중 — 진행 중인 건까지 마칩니다'); };
-/* 행이 늘 때마다 표를 다시 그리므로 핸들러는 부모에 한 번만 건다 */
-$('#scanBody').addEventListener('click',e=>{
-  const h=e.target.closest('[data-s]'); if(!h) return;
-  const k=h.dataset.s;
-  SCAN.dir = SCAN.sort===k ? -SCAN.dir : (k==='title'?1:1);
+/* 다시 그리면 포커스가 날아가므로 정렬한 헤더로 되돌려 준다 */
+function scanSortBy(k){
+  SCAN.dir = SCAN.sort===k ? -SCAN.dir : 1;
   SCAN.sort = k;
   renderScan();
+  const h=$(`.stbl th[data-s="${k}"]`); if(h) h.focus();
+}
+/* 행이 늘 때마다 표를 다시 그리므로 핸들러는 부모에 한 번만 건다 */
+$('#scanBody').addEventListener('click',e=>{
+  const h=e.target.closest('[data-s]'); if(h) scanSortBy(h.dataset.s);
+});
+$('#scanBody').addEventListener('keydown',e=>{
+  if(e.key!=='Enter' && e.key!==' ') return;
+  const h=e.target.closest('[data-s]'); if(!h) return;
+  e.preventDefault();                       // 스페이스로 스크롤이 튀지 않게
+  scanSortBy(h.dataset.s);
 });
 
 /* ── 8. 좌우 폭 조절 ──────────────────────────── */
@@ -1572,6 +1718,8 @@ function selfTest(){
   A(looksSitemap('https://a.b/sitemap.xml') && looksSitemap('https://a.b/news-sitemap')
     && !looksSitemap('https://a.b/news/123'),'사이트맵 주소 판정');
   A(scColor(70)==='var(--ok)' && scColor(50)==='var(--partial)' && scColor(49)==='var(--warn)','점수 색 구간');
+  // 집계용 라벨은 진단 항목과 하나씩 짝이 맞아야 한다
+  A(AXES.every(a=>ITEM_LABELS[a.k].length===r[a.k].items.length),'항목 라벨 개수 일치');
   const sr=[{avg:40},{err:'x'},{avg:90}];
   SCAN.sort='avg'; SCAN.dir=-1;
   A(sr.slice().sort(scanCmp).map(r=>r.avg??'x').join()==='90,40,x','실패 행은 정렬과 무관하게 아래');
