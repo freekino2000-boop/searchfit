@@ -16,7 +16,7 @@
   --outline:#c3c8d0; --outline-soft:#e2e6ee;
   --on-surface:#1a1c1e; --on-surface-var:#5c6470;
   --seo:#0b57d0; --geo:#8430ce; --aeo:#e8710a; --neo:#00873c;
-  --ok:#1e8e3e; --warn:#b3261e; --track:#e3e8f0;
+  --ok:#1e8e3e; --partial:#c77700; --warn:#b3261e; --track:#e3e8f0;
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
   --r-xl:28px;--r-l:20px;--r-m:12px;--r-pill:999px;
   --ease:cubic-bezier(.2,0,0,1);
@@ -230,7 +230,8 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
 .checks li{display:flex;gap:var(--s3);padding:9px 0;border-bottom:1px solid var(--outline-soft);align-items:flex-start}
 .checks li:last-child{border-bottom:0}
 .checks .mk{flex:0 0 18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;margin-top:2px}
-.checks .mk.y{background:var(--ok)} .checks .mk.n{background:var(--warn)}
+.checks .mk.y{background:var(--ok)} .checks .mk.p{background:var(--partial)} .checks .mk.n{background:var(--warn)}
+.checks .pct{margin-left:var(--s2);font-size:11.5px;font-weight:600;color:var(--partial);font-variant-numeric:tabular-nums}
 .checks .t{font-weight:500;font-size:13px}
 .checks .f{color:var(--on-surface-var);font-size:12px;margin-top:1px}
 
@@ -470,64 +471,76 @@ function thirdsHit(d,kw){
 }
 
 /* ── 2. 진단 ──────────────────────────────────── */
-const C = (ok,t,f)=>({ok:!!ok,t,f});
-/* h1은 하나, 헤딩 레벨은 건너뛰지 않는다 (claude-seo.md 4장) */
-function headingOk(d){
-  if(d.h1count!==1 || d.h2<2) return false;
-  let prev=1;
+/* 항목 하나. v는 boolean이거나 0~1 부분 점수, w는 축 안에서의 가중치.
+   통과 개수만 세면 6항목 축이 17점 단위로만 움직여 글을 고쳐도 점수가 안 변한다. */
+const C = (v,t,f,w=1)=>{
+  const s = typeof v==='number' ? Math.max(0,Math.min(1,v)) : (v?1:0);
+  return {ok:s>=1, s, t, f, w};
+};
+/* 구간 점수 — [lo,hi] 안이면 만점, 벗어난 만큼 tol에 비례해 깎는다 */
+const band = (v,lo,hi,tol)=> v>=lo&&v<=hi ? 1 : Math.max(0, 1-(v<lo?lo-v:v-hi)/tol);
+/* 목표치까지 선형 — 수치 0개와 2개를 같은 실패로 보지 않는다 */
+const upto = (v,goal)=> Math.max(0, Math.min(1, v/goal));
+/* 키워드 토큰 중 실제로 등장한 비율 */
+const hitRate = (text,kw)=>{ const t=tokens(kw); return t.length ? t.filter(w=>text.includes(w)).length/t.length : 0; };
+/* h1은 하나, h2는 둘 이상, 레벨은 건너뛰지 않는다 (claude-seo.md 4장) — 셋 중 지킨 비율 */
+function headingScore(d){
+  let prev=1, noSkip=true;
   for(const h of d.headings){
-    if(h.level>prev+1) return false;
+    if(h.level>prev+1) noSkip=false;
     prev=h.level;
   }
-  return true;
+  return ((d.h1count===1)+(d.h2>=2)+noSkip)/3;
 }
+const headingOk = d => headingScore(d)===1;
 function diagnose(d,kw){
   const dens = density(d,kw);
   const firstPara = d.paras[0]||'';
   const qHead = d.headings.filter(h=>isQuestion(h.text)||/^(왜|어떻게|무엇|언제|어디|누가|얼마)/.test(h.text)).length;
   const leadLen = (d.sentences[0]||'').length;
 
+  // 가중치는 그 항목이 실제 노출·인용에 기여하는 정도 순이다. 다 같은 1점이면 alt 텍스트와 제목 키워드가 동급이 된다.
   const seo = [
-    C(d.title.length>=25 && d.title.length<=35, `제목 길이 ${d.title.length}자`, '한글 기준 25~35자, 핵심 키워드는 앞쪽에'),
-    C(has(d.title,kw), '제목에 타깃 키워드 포함', `제목 앞부분에 "${kw}" 구성어를 모두 넣으세요`),
-    C(has(firstPara,kw), '첫 문단에 키워드 등장', '첫 150자 안에 키워드를 한 번 노출'),
-    C(d.chars>=900, `본문 분량 ${d.chars}자`, '경쟁 가능한 최소 분량 900자'),
-    C(headingOk(d), `헤딩 구조 h1 ${d.h1count}개 · h2+ ${d.h2}개`, 'h1은 하나만, 레벨을 건너뛰지 않게(h2→h4 금지)'),
-    C(dens>=0.4 && dens<=2.5, `키워드 밀도 ${dens}%`, '0.4~2.5% 구간 유지 (과다는 스팸 신호)'),
-    C(d.links>=1 && d.vagueAnchors===0, `링크 ${d.links}개${d.vagueAnchors?` · 모호한 앵커 ${d.vagueAnchors}개`:''}`,
+    C(band(d.title.length,25,35,12), `제목 길이 ${d.title.length}자`, '한글 기준 25~35자, 핵심 키워드는 앞쪽에', 2),
+    C(hitRate(d.title,kw), '제목에 타깃 키워드 포함', `제목 앞부분에 "${kw}" 구성어를 모두 넣으세요`, 3),
+    C(hitRate(firstPara,kw), '첫 문단에 키워드 등장', '첫 150자 안에 키워드를 한 번 노출', 2),
+    C(upto(d.chars,900), `본문 분량 ${d.chars}자`, '경쟁 가능한 최소 분량 900자', 2),
+    C(headingScore(d), `헤딩 구조 h1 ${d.h1count}개 · h2+ ${d.h2}개`, 'h1은 하나만, 레벨을 건너뛰지 않게(h2→h4 금지)', 2),
+    C(band(dens,0.4,2.5,1), `키워드 밀도 ${dens}%`, '0.4~2.5% 구간 유지 (과다는 스팸 신호)'),
+    C(d.links<1 ? 0 : d.vagueAnchors===0 ? 1 : 0.6, `링크 ${d.links}개${d.vagueAnchors?` · 모호한 앵커 ${d.vagueAnchors}개`:''}`,
       d.links<1 ? '근거·관련 문서로 나가는 링크 1개 이상' : '"여기", "자세히 보기" 대신 대상을 밝히는 앵커텍스트로'),
-    C(d.images.length>=1 && d.imagesNoAlt===0, `이미지 ${d.images.length}개${d.imagesNoAlt?` · alt 없음 ${d.imagesNoAlt}개`:''}`,
+    C(d.images.length<1 ? 0 : d.imagesNoAlt===0 ? 1 : 0.5, `이미지 ${d.images.length}개${d.imagesNoAlt?` · alt 없음 ${d.imagesNoAlt}개`:''}`,
       d.images.length<1 ? '대표 이미지 추가' : 'alt에 내용을 설명하세요(장식용은 alt="")'),
   ];
   const geo = [
-    C(d.numbers.length>=3, `인용 가능한 수치 ${d.numbers.length}개`, 'LLM이 집어갈 구체 수치를 3개 이상'),
-    C(d.sources.length>=2, `출처 표기 ${d.sources.length}회`, '"~에 따르면", "출처:" 형태로 근거를 명시'),
+    C(upto(d.numbers.length,3), `인용 가능한 수치 ${d.numbers.length}개`, 'LLM이 집어갈 구체 수치를 3개 이상', 3),
+    C(upto(d.sources.length,2), `출처 표기 ${d.sources.length}회`, '"~에 따르면", "출처:" 형태로 근거를 명시', 3),
     // 국내 기사·콘텐츠는 해요체를 많이 쓴다 — 해라체만 보면 정의문을 통째로 놓친다
     C(/(이란|란 |라 함은|를 뜻한다|를 의미한다|는 .{2,30}이다|를 의미해요|을 의미해요|를 뜻해요|을 뜻해요|를 말해요|이라고 해요|라고 해요)/.test(d.plain),
-      '정의 문장 존재', '핵심 개념을 한 문장으로 정의 (LLM 인용 1순위)'),
-    C(d.bullets>=3 || d.tables>=3, `구조화 블록 ${d.bullets+d.tables}줄`, '리스트·표로 사실을 분해해 두기'),
+      '정의 문장 존재', '핵심 개념을 한 문장으로 정의 (LLM 인용 1순위)', 2),
+    C(upto(Math.max(d.bullets,d.tables),3), `구조화 블록 ${d.bullets+d.tables}줄`, '리스트·표로 사실을 분해해 두기', 2),
     C(d.quotes.length>=1, `직접 인용 ${d.quotes.length}건`, '전문가 발언을 큰따옴표로 인용'),
-    C(d.experts.length>=1, '권위 주체 언급', '직함·기관명을 밝혀 신뢰 신호 부여'),
+    C(d.experts.length>=1, '권위 주체 언급', '직함·기관명을 밝혀 신뢰 신호 부여', 2),
   ];
   const aeo = [
-    C(qHead>=1, `질문형 소제목 ${qHead}개`, '소제목을 실제 검색 질문 형태로'),
-    C(leadLen>=40 && leadLen<=140, `첫 문장 ${leadLen}자`, '40~140자 직답 문장으로 시작 (스니펫 선점)'),
-    C(d.faq, 'FAQ 섹션 존재', '자주 묻는 질문 3~5개를 문서 하단에'),
-    C(d.summary, '요약/핵심 정리 블록', '상단에 3줄 요약 배치'),
-    C(d.bullets>=3, `불릿 ${d.bullets}줄`, '답변으로 발췌되기 쉬운 목록 형태'),
+    C(qHead>=1, `질문형 소제목 ${qHead}개`, '소제목을 실제 검색 질문 형태로', 2),
+    C(band(leadLen,40,140,60), `첫 문장 ${leadLen}자`, '40~140자 직답 문장으로 시작 (스니펫 선점)', 3),
+    C(d.faq, 'FAQ 섹션 존재', '자주 묻는 질문 3~5개를 문서 하단에', 3),
+    C(d.summary, '요약/핵심 정리 블록', '상단에 3줄 요약 배치', 2),
+    C(upto(d.bullets,3), `불릿 ${d.bullets}줄`, '답변으로 발췌되기 쉬운 목록 형태'),
     C(d.jsonld, '구조화 데이터 언급', 'FAQPage / Article JSON-LD 삽입'),
   ];
   // NEO — 네이버 검색 최적화. 구글과 기준이 다른 항목만 본다
   const avgPara = d.paras.length ? Math.round(d.paras.join('').length/d.paras.length) : 0;
   const neo = [
-    C(d.title.length<=25, `제목 ${d.title.length}자`, '네이버 검색결과는 25자 안팎에서 잘립니다'),
-    C(d.images.length>=1, `이미지 ${d.images.length}장`, '이미지가 있어야 스마트블록·이미지 검색에 노출됩니다'),
-    C(dens<=3, `키워드 밀도 ${dens}%`, '3%를 넘으면 네이버 어뷰징 필터에 걸립니다'),
-    C(avgPara>0 && avgPara<=200, `평균 문단 ${avgPara}자`, '모바일 가독성 기준 문단당 200자 이내로 끊으세요'),
+    C(band(d.title.length,0,25,10), `제목 ${d.title.length}자`, '네이버 검색결과는 25자 안팎에서 잘립니다', 3),
+    C(d.images.length>=1, `이미지 ${d.images.length}장`, '이미지가 있어야 스마트블록·이미지 검색에 노출됩니다', 2),
+    C(band(dens,0,3,1), `키워드 밀도 ${dens}%`, '3%를 넘으면 네이버 어뷰징 필터에 걸립니다', 2),
+    C(avgPara>0 ? band(avgPara,0,200,120) : 0, `평균 문단 ${avgPara}자`, '모바일 가독성 기준 문단당 200자 이내로 끊으세요', 2),
     C(d.dates.length>=1, `발행 시점 표기 ${d.dates.length}건`, '최신성 반영을 위해 날짜를 본문에 명시'),
     C(d.author || d.experts.length>=1, '작성자·출처 명시', '기자·기관·직함을 밝혀야 신뢰 문서로 분류됩니다'),
   ];
-  const pack = a => ({items:a, score:Math.round(a.filter(x=>x.ok).length/a.length*100)});
+  const pack = a => ({items:a, score:Math.round(a.reduce((s,x)=>s+x.s*x.w,0)/a.reduce((s,x)=>s+x.w,0)*100)});
   return {seo:pack(seo), geo:pack(geo), aeo:pack(aeo), neo:pack(neo), dens, kw};
 }
 const gradeOf = s => s>=90?'우수':s>=70?'양호':s>=50?'보통':'개선 필요';
@@ -966,8 +979,8 @@ function renderDiag(r){
         <em>${p.score}</em></div>
       <div class="meter"><span style="background:${a.color};transform:scaleX(${p.score/100})"></span></div>
       <ul class="checks">${p.items.map(c=>`<li>
-        <span class="mk ${c.ok?'y':'n'}">${c.ok?'✓':'!'}</span>
-        <span><span class="t">${esc(c.t)}</span>${c.ok?'':`<div class="f">${esc(c.f)}</div>`}</span></li>`).join('')}</ul>
+        <span class="mk ${c.ok?'y':c.s>0?'p':'n'}">${c.ok?'✓':c.s>0?'◐':'!'}</span>
+        <span><span class="t">${esc(c.t)}${c.ok||c.s===0?'':`<span class="pct">${Math.round(c.s*100)}%</span>`}</span>${c.ok?'':`<div class="f">${esc(c.f)}</div>`}</span></li>`).join('')}</ul>
     </div>`;
   }).join('') + `<p class="hint">타깃 키워드 <b>${esc(r.kw||'—')}</b> · 대표 토큰 밀도 ${r.dens}%</p>`;
 }
@@ -1280,7 +1293,7 @@ function toMarkdown(){
   const scores = '\n## 점수\n\n| 축 | 점수 | 등급 |\n|---|---|---|\n' +
     AXES.map(a=>`| ${a.name} | ${r[a.k].score} | ${gradeOf(r[a.k].score)} |`).join('\n') + '\n';
   const detail = AXES.map(a=>`\n### ${a.name} — ${a.full}\n\n` +
-    r[a.k].items.map(c=>`- [${c.ok?'x':' '}] ${c.t}${c.ok?'':` → ${c.f}`}`).join('\n')).join('\n');
+    r[a.k].items.map(c=>`- [${c.ok?'x':' '}] ${c.t}${c.ok?'':`${c.s>0?` (${Math.round(c.s*100)}%)`:''} → ${c.f}`}`).join('\n')).join('\n');
   const chg = `\n\n## 무엇을 바꿨나\n\n${CHANGES.map(c=>'- '+c).join('\n')}\n`;
   return head+scores+'\n## 항목별 진단\n'+detail+chg+'\n\n---\n\n# 재작성 전문\n\n'+cleanMd(MD);
 }
@@ -1357,6 +1370,13 @@ function selfTest(){
   const rb=diagnose(parse('아무 내용 없는 짧은 글입니다. 그냥 그렇다는 이야기.'),'중고');
   A(rb.seo.score<50,'빈약한 글 SEO 점수');
   A(rb.aeo.score<50,'빈약한 글 AEO 점수');
+  // 부분 점수 — 목표의 절반을 채운 글은 실패가 아니라 절반이다
+  A(band(30,25,35,12)===1 && band(19,25,35,12)===0.5,'구간 점수');
+  A(upto(1,3)===1/3 && upto(5,3)===1,'목표 대비 선형 점수');
+  A(hitRate('중고 거래가 늘었다','중고 수수료')===0.5,'키워드 토큰 부분 일치');
+  A(Math.abs(diagnose(parse('# 가\n\n'+'가'.repeat(450)),'나').seo.items[3].s-0.5)<0.01,'분량 부분 점수');
+  // 이분법이었다면 축 점수가 항목수 배수로만 나온다 — 그 격자에 걸리지 않아야 한다
+  A(!AXES.every(a=>diagnose(good,'중고 거래 수수료')[a.k].score % 25 === 0),'점수 해상도');
   const dr=draft(good,'중고 거래 수수료');
   A(dr.title.length<=40,'제목 40자 이내');
   A(dr.faq.length===5,'FAQ 5개');
