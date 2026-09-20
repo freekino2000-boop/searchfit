@@ -16,7 +16,7 @@
   --outline:#c3c8d0; --outline-soft:#e2e6ee;
   --on-surface:#1a1c1e; --on-surface-var:#5c6470;
   --seo:#0b57d0; --geo:#8430ce; --aeo:#e8710a; --neo:#00873c;
-  --ok:#1e8e3e; --partial:#c77700; --warn:#b3261e; --track:#e3e8f0;
+  --ok:#1e8e3e; --warn:#b3261e; --track:#e3e8f0;
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
   --r-xl:28px;--r-l:20px;--r-m:12px;--r-pill:999px;
   --ease:cubic-bezier(.2,0,0,1);
@@ -85,11 +85,12 @@ body{
 .brand em{font-style:normal;color:var(--primary)}
 .pills{display:flex;gap:var(--s2);margin-left:var(--s4)}
 .pill{
-  display:flex;align-items:center;gap:6px;border:1px solid var(--outline-soft);background:var(--surface-card);
-  border-radius:var(--r-pill);padding:5px 12px;font-size:12px;font-weight:500;color:var(--on-surface-var);
+  display:flex;align-items:center;gap:7px;border:1px solid var(--outline-soft);background:var(--surface-card);
+  border-radius:var(--r-pill);padding:6px 12px 6px 10px;font-size:12px;font-weight:500;color:var(--on-surface-var);
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
 }
 .pill i{width:8px;height:8px;border-radius:50%}
-.pill b{font-family:'Roboto';font-size:13px;color:var(--on-surface)}
+.pill b{font-family:'Roboto',sans-serif;font-size:13px;color:var(--on-surface);letter-spacing:-.2px}
 .bar .sp{flex:1}
 .btn{
   all:unset;box-sizing:border-box;padding:10px 22px;border-radius:var(--r-pill);cursor:pointer;
@@ -113,7 +114,7 @@ body{
   background:var(--surface-card);border:1px solid var(--outline-soft);border-radius:var(--r-xl);
   display:flex;flex-direction:column;min-width:0;overflow:hidden;
 }
-.pane > .ph, .scan > .ph{
+.pane > .ph{
   display:flex;align-items:center;gap:var(--s3);padding:var(--s4) var(--s5);
   border-bottom:1px solid var(--outline-soft);flex:0 0 auto;
 }
@@ -219,95 +220,47 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
 .stack{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s4)}
 
 /* 진단 패널 */
-.axis{margin-bottom:var(--s6)}
-.axis .ah{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s3)}
-.axis .ah i{width:9px;height:9px;border-radius:50%}
-.axis .ah b{font-size:14px}
-.axis .ah em{font-style:normal;margin-left:auto;font-family:'Roboto';font-weight:700;font-size:13px;color:var(--on-surface-var)}
-.meter{height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin-bottom:var(--s3)}
-.meter span{display:block;height:100%;border-radius:3px;transform-origin:left;transition:transform .4s var(--ease)}
-.checks{margin:0;padding:0;list-style:none}
-.checks li{display:flex;gap:var(--s3);padding:9px 0;border-bottom:1px solid var(--outline-soft);align-items:flex-start}
-.checks li:last-child{border-bottom:0}
-.checks .mk{flex:0 0 18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;margin-top:2px}
-[hidden]{display:none !important}
-/* 일괄 진단 — 매체 단위로 볼 때는 문서가 아니라 표가 화면을 차지한다 */
-.scan{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface);border-radius:var(--r-xl);overflow:hidden}
-.scan .pb{flex:1;overflow:auto;padding:0}
-.scan .sum{display:flex;gap:var(--s5);padding:var(--s5) var(--s6);border-bottom:1px solid var(--outline-soft);flex-wrap:wrap}
-.scan .sum div{display:flex;flex-direction:column;gap:2px}
-.scan .sum span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-surface-var)}
-.scan .sum b{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
-.scan .prog{height:2px;background:var(--track)}
-.scan .prog i{display:block;height:100%;background:var(--primary);transform-origin:left;transition:transform .2s ease-out}
-/* 진단 요약 — 축 점수가 먼저 읽히고, 그 아래로 고칠 것이 순서대로 쌓인다 */
-.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);padding:var(--s6)}
-.scard{background:var(--surface-2);border-radius:var(--r-l);padding:var(--s5);display:flex;flex-direction:column;gap:var(--s3);
-  transition:transform .18s cubic-bezier(.2,0,0,1)}
-.scard:hover{transform:translateY(-2px)}
-.scard header{display:flex;align-items:center;gap:var(--s2);min-width:0}
-.scard header i{width:8px;height:8px;border-radius:50%;background:var(--ax);flex:0 0 auto}
-.scard header b{font-size:14px;font-weight:700;letter-spacing:.02em}
-.scard header span{font-size:10.5px;color:var(--on-surface-var);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scard .v{display:flex;align-items:baseline;gap:var(--s2)}
-.scard .v em{font-style:normal;font-size:48px;font-weight:300;line-height:1;letter-spacing:-.03em;
-  font-variant-numeric:tabular-nums;color:var(--ax)}
-.scard .v .g{font-size:12px;font-weight:600;color:var(--on-surface-var)}
-.scard .gauge{height:4px;border-radius:2px;background:var(--track);overflow:hidden}
-.scard .gauge span{display:block;height:100%;background:var(--ax);transform-origin:left;
-  transition:transform .5s cubic-bezier(.2,0,0,1)}
-.scard footer{font-size:11.5px;color:var(--on-surface-var);line-height:1.5}
-.scard footer b{color:var(--warn);font-weight:600}
-.block{padding:0 var(--s6) var(--s6)}
-.block h3{display:flex;align-items:baseline;gap:var(--s3);margin:0 0 var(--s4);font-size:14px;font-weight:700}
-.block h3 small{font-size:11.5px;font-weight:400;color:var(--on-surface-var)}
-.dist{display:flex;flex-direction:column;gap:var(--s2)}
-/* 막대가 화면 폭을 다 쓰면 길이 차이가 눈에 안 들어온다 — 읽히는 길이로 묶는다 */
-.dr{display:grid;grid-template-columns:72px minmax(0,420px) 40px;align-items:center;gap:var(--s3)}
-.dr.zero{opacity:.45}
-.dl{font-size:12px;color:var(--on-surface-var)}
-.db{height:20px;border-radius:var(--r-m);background:var(--track);overflow:hidden}
-.db i{display:block;height:100%;border-radius:var(--r-m);transform-origin:left;
-  transition:transform .5s cubic-bezier(.2,0,0,1)}
-.dn{font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-.weak{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
-.weak li{display:grid;grid-template-columns:28px 1fr;gap:var(--s2) var(--s3);align-items:center;
-  padding:var(--s3) var(--s4);border-radius:var(--r-m);transition:background .15s}
-.weak li:hover{background:var(--surface-2)}
-.weak .rk{grid-row:span 3;align-self:start;width:28px;height:28px;border-radius:50%;background:var(--track);
-  display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--on-surface-var);font-variant-numeric:tabular-nums}
-.weak .wt{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
-.weak .wt b{font-size:13.5px;font-weight:600}
-.weak .wn{font-size:11.5px;color:var(--warn);font-weight:600;font-variant-numeric:tabular-nums}
-.weak .wb{height:4px;max-width:420px;border-radius:2px;background:var(--track);overflow:hidden}
-.weak .wb i{display:block;height:100%;background:var(--ax);transform-origin:left;
-  transition:transform .5s cubic-bezier(.2,0,0,1)}
-.weak .wf{margin:0;font-size:12px;color:var(--on-surface-var);line-height:1.6}
-@media (prefers-reduced-motion:reduce){
-  .scard,.scard .gauge span,.db i,.weak .wb i{transition:none}
-  .scard:hover{transform:none}
+.diag-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);align-items:stretch;
 }
-.stbl{width:100%;border-collapse:collapse;font-size:13px}
-.stbl th{position:sticky;top:0;z-index:1;background:var(--surface);text-align:left;font-weight:500;font-size:11.5px;letter-spacing:.04em;
-  color:var(--on-surface-var);padding:var(--s3) var(--s4);border-bottom:1px solid var(--outline-soft);cursor:pointer;white-space:nowrap;user-select:none}
-.stbl th:hover{color:var(--on-surface)}
-.stbl th:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;color:var(--on-surface)}
-.stbl th:active{color:var(--primary)}
-.stbl th[aria-sort]{color:var(--primary)}
-.stbl td{padding:var(--s3) var(--s4);border-bottom:1px solid var(--outline-soft);vertical-align:top}
-.stbl tbody tr:hover{background:var(--surface-2)}
-.stbl .n{text-align:right;font-variant-numeric:tabular-nums;width:56px}
-.stbl .ti{max-width:420px}
-.stbl .ti a{color:var(--on-surface);text-decoration:none}
-.stbl .ti a:hover{text-decoration:underline}
-.stbl .u{display:block;font-size:11px;color:var(--on-surface-var);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stbl .err{color:var(--warn);font-size:12px}
-.sc{display:inline-block;min-width:34px;padding:2px 6px;border-radius:var(--r-pill);text-align:center;
-  font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;color:#fff}
-.checks .mk.y{background:var(--ok)} .checks .mk.p{background:var(--partial)} .checks .mk.n{background:var(--warn)}
-.checks .pct{margin-left:var(--s2);font-size:11.5px;font-weight:600;color:var(--partial);font-variant-numeric:tabular-nums}
-.checks .t{font-weight:500;font-size:13px}
-.checks .f{color:var(--on-surface-var);font-size:12px;margin-top:1px}
+.diag-meta{margin-top:var(--s4)}
+.axis{
+  margin:0;display:flex;flex-direction:column;min-height:0;
+  background:linear-gradient(180deg, var(--surface-card) 0%, var(--surface-1) 100%);
+  border:1px solid var(--outline-soft);
+  border-radius:var(--r-l);
+  padding:var(--s4);
+  box-shadow:0 1px 2px rgba(16,24,40,.04), 0 10px 24px rgba(16,24,40,.05);
+}
+.axis .ah{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap}
+.axis .ah i{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.axis .ah b{font-size:14px;letter-spacing:-.2px}
+.axis .ah .hint{flex:1 1 100%;margin:2px 0 0;order:3;white-space:normal}
+.axis .ah em{
+  font-style:normal;margin-left:auto;font-family:'Roboto',sans-serif;
+  font-weight:700;font-size:24px;letter-spacing:-.6px;color:var(--on-surface);line-height:1;
+  display:inline-flex;align-items:baseline;gap:2px
+}
+.axis .ah em small{font-size:11px;font-weight:500;color:var(--on-surface-var)}
+.meter{
+  height:10px;border-radius:var(--r-pill);background:var(--track);
+  overflow:hidden;margin-bottom:var(--s3);
+  box-shadow:inset 0 1px 2px rgba(16,24,40,.06);
+}
+.meter span{
+  display:block;height:100%;border-radius:var(--r-pill);
+  transform-origin:left;transition:transform .45s var(--ease);
+}
+.axis .pass{color:var(--on-surface-var);font-size:11px;font-weight:500;margin:0 0 var(--s2)}
+.checks{margin:0;padding:0;list-style:none;border-top:1px solid var(--outline-soft);padding-top:var(--s2);flex:1}
+.checks li{display:flex;gap:var(--s3);padding:8px 0;border-bottom:1px solid var(--outline-soft);align-items:flex-start}
+.checks li:last-child{border-bottom:0;padding-bottom:0}
+.checks .mk{flex:0 0 18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;margin-top:2px;font-weight:700}
+.checks .mk.y{background:var(--ok)}
+.checks .mk.n{background:var(--warn)}
+.checks .t{font-weight:500;font-size:12.5px}
+.checks .f{color:var(--on-surface-var);font-size:11.5px;margin-top:2px;line-height:1.45}
+.pop.wide{width:min(860px, calc(100vw - 88px))}
 
 .toast{
   position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);opacity:0;pointer-events:none;
@@ -321,6 +274,8 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
    1200px 이하: 두 창을 위아래로 쌓지 않고 한 번에 하나만 — 좁은 화면에서 나란히 비교는 어차피 불가능하다 */
 .only-m{display:none}
 @media (max-width:1200px){
+  .diag-grid{grid-template-columns:1fr 1fr}
+  .pop.wide{width:min(720px, calc(100vw - 80px))}
   .only-m{display:inline-flex}
   .panes{grid-template-columns:1fr;padding:var(--s4)}
   .handle{display:none}
@@ -333,6 +288,8 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
   .dsum{margin:var(--s4) var(--s5) 0}
 }
 @media (max-width:720px){
+  .diag-grid{grid-template-columns:1fr}
+  .pop.wide{width:calc(100vw - 56px);left:56px}
   .app{grid-template-columns:56px 1fr}
   .rail{padding:var(--s3) 0}
   .rail .mark{width:38px;height:38px;font-size:14px;margin-bottom:var(--s3)}
@@ -367,7 +324,6 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
     <div class="mark">SF</div>
     <button id="mInput" aria-expanded="false"><span class="ico">✎</span>입력</button>
     <button id="mDiag" aria-expanded="false"><span class="ico">◎</span>진단</button>
-    <button id="mScan" aria-expanded="false"><span class="ico">⊞</span>스캔</button>
     <span class="sp"></span>
     <button id="mReset" aria-expanded="false"><span class="ico">↺</span>초기화</button>
   </nav>
@@ -417,23 +373,6 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
         <div class="pb" id="outWrap">
           <div class="empty">진단을 실행하면 최적화된 글이 여기에 만들어집니다.</div>
         </div>
-      </div>
-    </div>
-
-    <div class="scan" id="scanWrap" hidden>
-      <div class="ph">
-        <span class="tag">SCAN</span><span class="nm">일괄 진단</span>
-        <div class="seg" id="scanSeg" hidden>
-          <button aria-selected="true" data-sv="sum">진단 요약</button>
-          <button aria-selected="false" data-sv="list">기사 목록</button>
-        </div>
-        <span class="sp"></span>
-        <span class="cnt" id="scanCnt">0건</span>
-        <button class="btn text sm" id="btnScanStop" hidden>중단</button>
-        <button class="btn text sm" id="btnScanCsv">CSV 저장</button>
-      </div>
-      <div class="pb" id="scanBody">
-        <div class="empty">왼쪽 [스캔] 메뉴에 기사 URL 목록이나 사이트맵 주소를 넣으세요.</div>
       </div>
     </div>
   </section>
@@ -563,76 +502,64 @@ function thirdsHit(d,kw){
 }
 
 /* ── 2. 진단 ──────────────────────────────────── */
-/* 항목 하나. v는 boolean이거나 0~1 부분 점수, w는 축 안에서의 가중치.
-   통과 개수만 세면 6항목 축이 17점 단위로만 움직여 글을 고쳐도 점수가 안 변한다. */
-const C = (v,t,f,w=1)=>{
-  const s = typeof v==='number' ? Math.max(0,Math.min(1,v)) : (v?1:0);
-  return {ok:s>=1, s, t, f, w};
-};
-/* 구간 점수 — [lo,hi] 안이면 만점, 벗어난 만큼 tol에 비례해 깎는다 */
-const band = (v,lo,hi,tol)=> v>=lo&&v<=hi ? 1 : Math.max(0, 1-(v<lo?lo-v:v-hi)/tol);
-/* 목표치까지 선형 — 수치 0개와 2개를 같은 실패로 보지 않는다 */
-const upto = (v,goal)=> Math.max(0, Math.min(1, v/goal));
-/* 키워드 토큰 중 실제로 등장한 비율 */
-const hitRate = (text,kw)=>{ const t=tokens(kw); return t.length ? t.filter(w=>text.includes(w)).length/t.length : 0; };
-/* h1은 하나, h2는 둘 이상, 레벨은 건너뛰지 않는다 (claude-seo.md 4장) — 셋 중 지킨 비율 */
-function headingScore(d){
-  let prev=1, noSkip=true;
+const C = (ok,t,f)=>({ok:!!ok,t,f});
+/* h1은 하나, 헤딩 레벨은 건너뛰지 않는다 (claude-seo.md 4장) */
+function headingOk(d){
+  if(d.h1count!==1 || d.h2<2) return false;
+  let prev=1;
   for(const h of d.headings){
-    if(h.level>prev+1) noSkip=false;
+    if(h.level>prev+1) return false;
     prev=h.level;
   }
-  return ((d.h1count===1)+(d.h2>=2)+noSkip)/3;
+  return true;
 }
-const headingOk = d => headingScore(d)===1;
 function diagnose(d,kw){
   const dens = density(d,kw);
   const firstPara = d.paras[0]||'';
   const qHead = d.headings.filter(h=>isQuestion(h.text)||/^(왜|어떻게|무엇|언제|어디|누가|얼마)/.test(h.text)).length;
   const leadLen = (d.sentences[0]||'').length;
 
-  // 가중치는 그 항목이 실제 노출·인용에 기여하는 정도 순이다. 다 같은 1점이면 alt 텍스트와 제목 키워드가 동급이 된다.
   const seo = [
-    C(band(d.title.length,25,35,12), `제목 길이 ${d.title.length}자`, '한글 기준 25~35자, 핵심 키워드는 앞쪽에', 2),
-    C(hitRate(d.title,kw), '제목에 타깃 키워드 포함', `제목 앞부분에 "${kw}" 구성어를 모두 넣으세요`, 3),
-    C(hitRate(firstPara,kw), '첫 문단에 키워드 등장', '첫 150자 안에 키워드를 한 번 노출', 2),
-    C(upto(d.chars,900), `본문 분량 ${d.chars}자`, '경쟁 가능한 최소 분량 900자', 2),
-    C(headingScore(d), `헤딩 구조 h1 ${d.h1count}개 · h2+ ${d.h2}개`, 'h1은 하나만, 레벨을 건너뛰지 않게(h2→h4 금지)', 2),
-    C(band(dens,0.4,2.5,1), `키워드 밀도 ${dens}%`, '0.4~2.5% 구간 유지 (과다는 스팸 신호)'),
-    C(d.links<1 ? 0 : d.vagueAnchors===0 ? 1 : 0.6, `링크 ${d.links}개${d.vagueAnchors?` · 모호한 앵커 ${d.vagueAnchors}개`:''}`,
+    C(d.title.length>=25 && d.title.length<=35, `제목 길이 ${d.title.length}자`, '한글 기준 25~35자, 핵심 키워드는 앞쪽에'),
+    C(has(d.title,kw), '제목에 타깃 키워드 포함', `제목 앞부분에 "${kw}" 구성어를 모두 넣으세요`),
+    C(has(firstPara,kw), '첫 문단에 키워드 등장', '첫 150자 안에 키워드를 한 번 노출'),
+    C(d.chars>=900, `본문 분량 ${d.chars}자`, '경쟁 가능한 최소 분량 900자'),
+    C(headingOk(d), `헤딩 구조 h1 ${d.h1count}개 · h2+ ${d.h2}개`, 'h1은 하나만, 레벨을 건너뛰지 않게(h2→h4 금지)'),
+    C(dens>=0.4 && dens<=2.5, `키워드 밀도 ${dens}%`, '0.4~2.5% 구간 유지 (과다는 스팸 신호)'),
+    C(d.links>=1 && d.vagueAnchors===0, `링크 ${d.links}개${d.vagueAnchors?` · 모호한 앵커 ${d.vagueAnchors}개`:''}`,
       d.links<1 ? '근거·관련 문서로 나가는 링크 1개 이상' : '"여기", "자세히 보기" 대신 대상을 밝히는 앵커텍스트로'),
-    C(d.images.length<1 ? 0 : d.imagesNoAlt===0 ? 1 : 0.5, `이미지 ${d.images.length}개${d.imagesNoAlt?` · alt 없음 ${d.imagesNoAlt}개`:''}`,
+    C(d.images.length>=1 && d.imagesNoAlt===0, `이미지 ${d.images.length}개${d.imagesNoAlt?` · alt 없음 ${d.imagesNoAlt}개`:''}`,
       d.images.length<1 ? '대표 이미지 추가' : 'alt에 내용을 설명하세요(장식용은 alt="")'),
   ];
   const geo = [
-    C(upto(d.numbers.length,3), `인용 가능한 수치 ${d.numbers.length}개`, 'LLM이 집어갈 구체 수치를 3개 이상', 3),
-    C(upto(d.sources.length,2), `출처 표기 ${d.sources.length}회`, '"~에 따르면", "출처:" 형태로 근거를 명시', 3),
+    C(d.numbers.length>=3, `인용 가능한 수치 ${d.numbers.length}개`, 'LLM이 집어갈 구체 수치를 3개 이상'),
+    C(d.sources.length>=2, `출처 표기 ${d.sources.length}회`, '"~에 따르면", "출처:" 형태로 근거를 명시'),
     // 국내 기사·콘텐츠는 해요체를 많이 쓴다 — 해라체만 보면 정의문을 통째로 놓친다
     C(/(이란|란 |라 함은|를 뜻한다|를 의미한다|는 .{2,30}이다|를 의미해요|을 의미해요|를 뜻해요|을 뜻해요|를 말해요|이라고 해요|라고 해요)/.test(d.plain),
-      '정의 문장 존재', '핵심 개념을 한 문장으로 정의 (LLM 인용 1순위)', 2),
-    C(upto(Math.max(d.bullets,d.tables),3), `구조화 블록 ${d.bullets+d.tables}줄`, '리스트·표로 사실을 분해해 두기', 2),
+      '정의 문장 존재', '핵심 개념을 한 문장으로 정의 (LLM 인용 1순위)'),
+    C(d.bullets>=3 || d.tables>=3, `구조화 블록 ${d.bullets+d.tables}줄`, '리스트·표로 사실을 분해해 두기'),
     C(d.quotes.length>=1, `직접 인용 ${d.quotes.length}건`, '전문가 발언을 큰따옴표로 인용'),
-    C(d.experts.length>=1, '권위 주체 언급', '직함·기관명을 밝혀 신뢰 신호 부여', 2),
+    C(d.experts.length>=1, '권위 주체 언급', '직함·기관명을 밝혀 신뢰 신호 부여'),
   ];
   const aeo = [
-    C(qHead>=1, `질문형 소제목 ${qHead}개`, '소제목을 실제 검색 질문 형태로', 2),
-    C(band(leadLen,40,140,60), `첫 문장 ${leadLen}자`, '40~140자 직답 문장으로 시작 (스니펫 선점)', 3),
-    C(d.faq, 'FAQ 섹션 존재', '자주 묻는 질문 3~5개를 문서 하단에', 3),
-    C(d.summary, '요약/핵심 정리 블록', '상단에 3줄 요약 배치', 2),
-    C(upto(d.bullets,3), `불릿 ${d.bullets}줄`, '답변으로 발췌되기 쉬운 목록 형태'),
+    C(qHead>=1, `질문형 소제목 ${qHead}개`, '소제목을 실제 검색 질문 형태로'),
+    C(leadLen>=40 && leadLen<=140, `첫 문장 ${leadLen}자`, '40~140자 직답 문장으로 시작 (스니펫 선점)'),
+    C(d.faq, 'FAQ 섹션 존재', '자주 묻는 질문 3~5개를 문서 하단에'),
+    C(d.summary, '요약/핵심 정리 블록', '상단에 3줄 요약 배치'),
+    C(d.bullets>=3, `불릿 ${d.bullets}줄`, '답변으로 발췌되기 쉬운 목록 형태'),
     C(d.jsonld, '구조화 데이터 언급', 'FAQPage / Article JSON-LD 삽입'),
   ];
   // NEO — 네이버 검색 최적화. 구글과 기준이 다른 항목만 본다
   const avgPara = d.paras.length ? Math.round(d.paras.join('').length/d.paras.length) : 0;
   const neo = [
-    C(band(d.title.length,0,25,10), `제목 ${d.title.length}자`, '네이버 검색결과는 25자 안팎에서 잘립니다', 3),
-    C(d.images.length>=1, `이미지 ${d.images.length}장`, '이미지가 있어야 스마트블록·이미지 검색에 노출됩니다', 2),
-    C(band(dens,0,3,1), `키워드 밀도 ${dens}%`, '3%를 넘으면 네이버 어뷰징 필터에 걸립니다', 2),
-    C(avgPara>0 ? band(avgPara,0,200,120) : 0, `평균 문단 ${avgPara}자`, '모바일 가독성 기준 문단당 200자 이내로 끊으세요', 2),
+    C(d.title.length<=25, `제목 ${d.title.length}자`, '네이버 검색결과는 25자 안팎에서 잘립니다'),
+    C(d.images.length>=1, `이미지 ${d.images.length}장`, '이미지가 있어야 스마트블록·이미지 검색에 노출됩니다'),
+    C(dens<=3, `키워드 밀도 ${dens}%`, '3%를 넘으면 네이버 어뷰징 필터에 걸립니다'),
+    C(avgPara>0 && avgPara<=200, `평균 문단 ${avgPara}자`, '모바일 가독성 기준 문단당 200자 이내로 끊으세요'),
     C(d.dates.length>=1, `발행 시점 표기 ${d.dates.length}건`, '최신성 반영을 위해 날짜를 본문에 명시'),
     C(d.author || d.experts.length>=1, '작성자·출처 명시', '기자·기관·직함을 밝혀야 신뢰 문서로 분류됩니다'),
   ];
-  const pack = a => ({items:a, score:Math.round(a.reduce((s,x)=>s+x.s*x.w,0)/a.reduce((s,x)=>s+x.w,0)*100)});
+  const pack = a => ({items:a, score:Math.round(a.filter(x=>x.ok).length/a.length*100)});
   return {seo:pack(seo), geo:pack(geo), aeo:pack(aeo), neo:pack(neo), dens, kw};
 }
 const gradeOf = s => s>=90?'우수':s>=70?'양호':s>=50?'보통':'개선 필요';
@@ -1063,18 +990,23 @@ function renderOut(){
 }
 function renderDiag(r){
   if(!r) return '<p class="hint">먼저 [진단 · 재작성 실행]을 누르세요.</p>';
-  return AXES.map(a=>{
+  const cards = AXES.map(a=>{
     const p=r[a.k];
-    return `<div class="axis">
-      <div class="ah"><i style="background:${a.color}"></i><b>${a.name}</b>
-        <span class="hint" style="margin:0">${a.full}</span>
-        <em>${p.score}</em></div>
-      <div class="meter"><span style="background:${a.color};transform:scaleX(${p.score/100})"></span></div>
+    const pass=p.items.filter(c=>c.ok).length, tot=p.items.length;
+    const pct=Math.max(0, Math.min(1, p.score/100));
+    return `<div class="axis" data-axis="${a.k}">
+      <div class="ah"><i style="background:${a.color};box-shadow:0 0 0 4px color-mix(in srgb, ${a.color} 18%, transparent)"></i><b>${a.name}</b>
+        <em>${p.score}<small>점</small></em>
+        <span class="hint">${a.full}</span></div>
+      <div class="meter"><span style="background:${a.color};transform:scaleX(${pct})"></span></div>
+      <div class="pass">통과 ${pass}/${tot}</div>
       <ul class="checks">${p.items.map(c=>`<li>
-        <span class="mk ${c.ok?'y':c.s>0?'p':'n'}">${c.ok?'✓':c.s>0?'◐':'!'}</span>
-        <span><span class="t">${esc(c.t)}${c.ok||c.s===0?'':`<span class="pct">${Math.round(c.s*100)}%</span>`}</span>${c.ok?'':`<div class="f">${esc(c.f)}</div>`}</span></li>`).join('')}</ul>
+        <span class="mk ${c.ok?'y':'n'}">${c.ok?'✓':'!'}</span>
+        <span><span class="t">${esc(c.t)}</span>${c.ok?'':`<div class="f">${esc(c.f)}</div>`}</span></li>`).join('')}</ul>
     </div>`;
-  }).join('') + `<p class="hint">타깃 키워드 <b>${esc(r.kw||'—')}</b> · 대표 토큰 밀도 ${r.dens}%</p>`;
+  }).join('');
+  return `<div class="diag-grid">${cards}</div>
+    <p class="hint diag-meta">타깃 키워드 <b>${esc(r.kw||'—')}</b> · 대표 토큰 밀도 ${r.dens}%</p>`;
 }
 
 /* ── 6. 팝업 메뉴 ─────────────────────────────── */
@@ -1102,57 +1034,28 @@ const MENUS = {
       <button class="btn tonal" data-act="sample">샘플 기사</button>
     </div>`},
   mDiag:{title:'진단 결과', html:()=>renderDiag(LAST&&LAST.r)},
-  mScan:{title:'일괄 진단', html:()=>`
-    <div class="field">
-      <label for="scanSrc">기사 URL 목록</label>
-      <textarea id="scanSrc" rows="7" placeholder="한 줄에 하나씩&#10;https://example.com/news/1&#10;https://example.com/news/2">${esc(SCAN.src)}</textarea>
-      <span class="hint">사이트맵 주소(.xml)를 한 줄만 넣으면 그 안의 기사 주소를 꺼내 씁니다.</span>
-    </div>
-    <div class="field">
-      <label for="scanKw">공통 타깃 키워드</label>
-      <input type="text" id="scanKw" placeholder="비우면 기사마다 자동 추출" value="${esc(SCAN.kw)}">
-    </div>
-    <div class="field">
-      <label for="scanMax">최대 건수</label>
-      <input type="number" id="scanMax" min="1" max="500" value="${SCAN.max}">
-      <span class="hint">리더 API 제한이 있어 한 건에 2~4초 걸립니다. 30건이면 약 2분.</span>
-    </div>
-    <div class="stack">
-      <button class="btn filled" data-act="scanRun">일괄 진단 실행</button>
-    </div>`},
 };
 let OPEN=null;
 const STATE = {url:'', kw:'', brand:''};
-const SCAN = {src:'', kw:'', max:30, rows:[], sort:'avg', dir:1, running:false, done:0, total:0,
-              view:'sum', fix:null};
 let MODE='text';
-/* 스캔은 문서 두 장이 아니라 표가 화면을 차지한다 */
-function showScan(on){
-  $('#panes').hidden = on;
-  $('#scanWrap').hidden = !on;
-  $('#handle').hidden = on;
-  ['btnShare','btnSave','btnSample','btnRun','paneSeg'].forEach(id=>{ const e=$('#'+id); if(e) e.hidden = on; });
-}
 function openMenu(k){
   if(OPEN===k) return closeMenu();
   OPEN=k;
-  showScan(k==='mScan');
-  if(k==='mScan') renderScan();
   document.querySelectorAll('.rail button').forEach(b=>b.setAttribute('aria-expanded', b.id===k));
   $('#popTitle').textContent = MENUS[k].title;
   $('#popBody').innerHTML = MENUS[k].html();
+  $('#pop').classList.toggle('wide', k==='mDiag');
   $('#pop').classList.add('on');
 }
 function closeMenu(){
-  OPEN=null; $('#pop').classList.remove('on');
+  OPEN=null; $('#pop').classList.remove('on','wide');
   document.querySelectorAll('.rail button').forEach(b=>b.setAttribute('aria-expanded',false));
 }
 Object.keys(MENUS).forEach(k=>{ $('#'+k).onclick=()=>openMenu(k); });
 $('#popX').onclick=closeMenu;
 $('#mReset').onclick=()=>{
   $('#src').value=''; STATE.url=STATE.kw=STATE.brand=''; LAST=null; MD=''; CHANGES=[];
-  SCAN.running=false; SCAN.src=SCAN.kw=''; SCAN.rows=[]; SCAN.done=SCAN.total=0; SCAN.fix=null; SCAN.view='sum';
-  renderPills(null); renderOut(); renderScan(); syncCount(); showScan(false); closeMenu(); toast('초기화했습니다');
+  renderPills(null); renderOut(); syncCount(); closeMenu(); toast('초기화했습니다');
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMenu(); });
 document.addEventListener('mousedown',e=>{
@@ -1166,15 +1069,12 @@ $('#popBody').addEventListener('input',e=>{
   if(id==='url') STATE.url=e.target.value;
   if(id==='kw') STATE.kw=e.target.value;
   if(id==='brand') STATE.brand=e.target.value;
-  if(id==='scanSrc') SCAN.src=e.target.value;
-  if(id==='scanKw') SCAN.kw=e.target.value;
-  if(id==='scanMax') SCAN.max=e.target.value;
 });
 $('#popBody').addEventListener('click',e=>{
   const tab=e.target.closest('[data-m]');
   if(tab){ MODE=tab.dataset.m; $('#popBody').innerHTML=MENUS.mInput.html(); return; }
   const b=e.target.closest('[data-act]'); if(!b) return;
-  ({run, sample, scanRun})[b.dataset.act]();
+  ({run, sample})[b.dataset.act]();
 });
 
 /* ── 7. 동작 ──────────────────────────────────── */
@@ -1418,230 +1318,18 @@ function toMarkdown(){
   const scores = '\n## 점수\n\n| 축 | 점수 | 등급 |\n|---|---|---|\n' +
     AXES.map(a=>`| ${a.name} | ${r[a.k].score} | ${gradeOf(r[a.k].score)} |`).join('\n') + '\n';
   const detail = AXES.map(a=>`\n### ${a.name} — ${a.full}\n\n` +
-    r[a.k].items.map(c=>`- [${c.ok?'x':' '}] ${c.t}${c.ok?'':`${c.s>0?` (${Math.round(c.s*100)}%)`:''} → ${c.f}`}`).join('\n')).join('\n');
+    r[a.k].items.map(c=>`- [${c.ok?'x':' '}] ${c.t}${c.ok?'':` → ${c.f}`}`).join('\n')).join('\n');
   const chg = `\n\n## 무엇을 바꿨나\n\n${CHANGES.map(c=>'- '+c).join('\n')}\n`;
   return head+scores+'\n## 항목별 진단\n'+detail+chg+'\n\n---\n\n# 재작성 전문\n\n'+cleanMd(MD);
 }
-function saveBlob(text,type,name){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([text],{type}));
-  a.download=name;
-  a.click(); URL.revokeObjectURL(a.href); toast('저장했습니다');
-}
 function saveMd(){
   if(!LAST) return toast('먼저 진단을 실행하세요');
-  saveBlob(toMarkdown(),'text/markdown;charset=utf-8',
-    `SEO진단_${(LAST.kw||'리포트').slice(0,20)}_${new Date().toISOString().slice(0,10)}.md`);
+  const blob=new Blob([toMarkdown()],{type:'text/markdown;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`SEO진단_${(LAST.kw||'리포트').slice(0,20)}_${new Date().toISOString().slice(0,10)}.md`;
+  a.click(); URL.revokeObjectURL(a.href); toast('저장했습니다');
 }
-
-/* ── 7-1. 일괄 진단(SF Scan) ──────────────────── */
-/* 집계 화면에 쓰는 짧은 항목명. diagnose가 만드는 문구에는 실측값이 섞여 있어
-   그대로는 묶이지 않는다. 순서는 diagnose와 같아야 하며 selfTest가 개수를 지킨다. */
-const ITEM_LABELS = {
-  seo:['제목 길이','제목 키워드','첫 문단 키워드','본문 분량','헤딩 구조','키워드 밀도','외부 링크','이미지·alt'],
-  geo:['인용 가능 수치','출처 표기','정의 문장','구조화 블록','직접 인용','권위 주체'],
-  aeo:['질문형 소제목','첫 문장 길이','FAQ 섹션','요약 블록','불릿 목록','구조화 데이터'],
-  neo:['제목 길이(네이버)','이미지','키워드 밀도(네이버)','문단 길이','발행 시점','작성자 표기'],
-};
-const looksSitemap = s => /\.xml(\?|$)/i.test(s) || /sitemap/i.test(s);
-const scColor = v => v>=70?'var(--ok)' : v>=50?'var(--partial)' : 'var(--warn)';
-/* 사이트맵에서 주소를 꺼낸다. 리더가 XML을 마크다운으로 바꿔도 주소 자체는 남으므로
-   태그를 파싱하는 것보다 본문에서 주소를 긁는 쪽이 견고하다. */
-async function sitemapUrls(u){
-  const res = await fetch('https://r.jina.ai/'+u);
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const t = await res.text();
-  const all = [...new Set(t.match(/https?:\/\/[^\s<>"')\]]+/g)||[])].filter(x=>!x.includes('r.jina.ai'));
-  return {
-    maps: all.filter(x=>/\.xml(\?|$)/i.test(x) && x!==u),
-    pages: all.filter(x=>!/\.(xml|css|js|png|jpe?g|gif|svg|webp|ico)(\?|$)/i.test(x)),
-  };
-}
-async function scanCollect(first){
-  let {pages, maps} = await sitemapUrls(first);
-  // 사이트맵 인덱스면 하위 사이트맵을 한 단계만 따라간다
-  if(!pages.length && maps.length) pages = (await sitemapUrls(maps[0])).pages;
-  return pages;
-}
-async function scanRun(){
-  if(SCAN.running) return;
-  const given = SCAN.src.split(/\s+/).map(s=>s.trim()).filter(s=>/^https?:\/\//.test(s));
-  if(!given.length) return toast('http(s)로 시작하는 주소를 넣으세요');
-  let urls = given;
-  if(given.length===1 && looksSitemap(given[0])){
-    toast('사이트맵에서 기사 주소를 꺼내는 중…');
-    try{ urls = await scanCollect(given[0]); }
-    catch(e){ return toast('사이트맵 읽기 실패: '+e.message); }
-    if(!urls.length) return toast('사이트맵에서 기사 주소를 찾지 못했습니다');
-  }
-  urls = urls.slice(0, Math.max(1, Math.min(500, +SCAN.max||30)));
-  SCAN.running=true; SCAN.rows=[]; SCAN.done=0; SCAN.total=urls.length;
-  $('#btnScanStop').hidden=false;
-  renderScan();
-  for(const u of urls){
-    if(!SCAN.running) break;                       // 중단 버튼
-    const row={url:u};
-    try{
-      const d = parse(await fetchUrl(u));
-      const kw = SCAN.kw.trim() || autoKeyword(d);
-      const r = diagnose(d,kw);
-      row.title=d.title||'(제목 없음)'; row.chars=d.chars; row.kw=kw;
-      row.items={}; AXES.forEach(a=>row.items[a.k]=r[a.k].items.map(c=>c.s));
-      // 보완 지시문은 기사와 무관하게 같다 — 한 번만 챙겨 둔다
-      if(!SCAN.fix){ SCAN.fix={}; AXES.forEach(a=>SCAN.fix[a.k]=r[a.k].items.map(c=>c.f)); }
-      AXES.forEach(a=>row[a.k]=r[a.k].score);
-      row.avg = Math.round(AXES.reduce((s,a)=>s+r[a.k].score,0)/AXES.length);
-    }catch(e){
-      row.err = /Failed to fetch|NetworkError|load failed/i.test(e.message||'') ? '요청 차단' : e.message;
-    }
-    SCAN.rows.push(row); SCAN.done++;
-    renderScan();
-  }
-  const stopped = !SCAN.running;
-  SCAN.running=false; $('#btnScanStop').hidden=true;
-  renderScan();
-  toast(stopped ? `중단 — ${SCAN.done}건까지 진단했습니다` : `일괄 진단 완료 — ${SCAN.done}건`);
-}
-/* 점수가 없는 행(수집 실패)은 정렬 방향과 무관하게 아래로 내린다 */
-function scanCmp(a,b){
-  const av=a[SCAN.sort], bv=b[SCAN.sort];
-  if(av==null) return bv==null?0:1;
-  if(bv==null) return -1;
-  return typeof av==='string' ? SCAN.dir*av.localeCompare(bv) : SCAN.dir*(av-bv);
-}
-/* 매체 전체를 한 덩어리로 집계한다 — 기사 한 건이 아니라 편집국이 볼 숫자다 */
-function scanAgg(){
-  const ok = SCAN.rows.filter(r=>r.items);
-  const mean = arr => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : 0;
-  const axis = {};
-  const weak = [];
-  AXES.forEach(a=>{
-    axis[a.k] = {
-      score: Math.round(mean(ok.map(r=>r[a.k]))),
-      under: ok.filter(r=>r[a.k]<70).length,          // 70점 미만을 보완 대상으로 본다
-    };
-    ITEM_LABELS[a.k].forEach((label,i)=>{
-      const vals = ok.map(r=>r.items[a.k][i]);
-      const miss = vals.filter(v=>v<1).length;
-      weak.push({ax:a, label, miss, rate: ok.length?miss/ok.length:0, avg: mean(vals),
-                 fix: (SCAN.fix&&SCAN.fix[a.k]&&SCAN.fix[a.k][i])||'' });
-    });
-  });
-  // 많이 틀린 것 먼저, 같으면 더 낮게 받은 것 먼저
-  weak.sort((x,y)=> y.rate-x.rate || x.avg-y.avg);
-  const dist = [0,0,0,0];                             // 90+ / 70~89 / 50~69 / 50미만
-  ok.forEach(r=>dist[r.avg>=90?0:r.avg>=70?1:r.avg>=50?2:3]++);
-  return {ok, axis, weak, dist, total: ok.length, failed: SCAN.rows.length-ok.length};
-}
-function renderScanSummary(g){
-  const pct = n => g.total ? Math.round(n/g.total*100) : 0;
-  const cards = AXES.map(a=>{
-    const s = g.axis[a.k];
-    return `<article class="scard" style="--ax:${a.color}">
-      <header><i></i><b>${a.name}</b><span>${a.full}</span></header>
-      <div class="v"><em>${s.score}</em><span class="g">${gradeOf(s.score)}</span></div>
-      <div class="gauge"><span style="transform:scaleX(${s.score/100})"></span></div>
-      <footer>${s.under ? `보완 대상 <b>${s.under}건</b> · 전체의 ${pct(s.under)}%` : '전 기사 70점 이상'}</footer>
-    </article>`;
-  }).join('');
-  const bars = [
-    {k:'90점 이상', n:g.dist[0], c:'var(--ok)'},
-    {k:'70~89', n:g.dist[1], c:'var(--ok)'},
-    {k:'50~69', n:g.dist[2], c:'var(--partial)'},
-    {k:'50 미만', n:g.dist[3], c:'var(--warn)'},
-  ];
-  const maxN = Math.max(1, ...bars.map(b=>b.n));
-  const dist = `<section class="block">
-    <h3>기사 점수 분포<small>평균 ${Math.round(g.ok.reduce((s,r)=>s+r.avg,0)/(g.total||1))}점 · ${g.total}건</small></h3>
-    <div class="dist">${bars.map(b=>`<div class="dr${b.n?'':' zero'}">
-      <span class="dl">${b.k}</span>
-      <div class="db"><i style="background:${b.c};transform:scaleX(${b.n/maxN})"></i></div>
-      <span class="dn">${b.n}</span>
-    </div>`).join('')}</div>
-  </section>`;
-  const top = g.weak.filter(w=>w.miss>0).slice(0,8);
-  const weak = `<section class="block">
-    <h3>보완 우선순위<small>실패한 기사가 많은 항목부터</small></h3>
-    ${top.length ? `<ol class="weak">${top.map((w,i)=>`<li style="--ax:${w.ax.color}">
-      <span class="rk">${i+1}</span>
-      <div class="wt"><span class="axtag ax-${w.ax.k}">${w.ax.name}</span><b>${esc(w.label)}</b>
-        <span class="wn">${w.miss}건 미달 · ${Math.round(w.rate*100)}%</span></div>
-      <div class="wb"><i style="transform:scaleX(${w.rate})"></i></div>
-      <p class="wf">${esc(w.fix)}</p>
-    </li>`).join('')}</ol>` : '<p class="hint">모든 항목을 통과했습니다.</p>'}
-  </section>`;
-  return `<div class="sgrid">${cards}</div>${dist}${weak}`;
-}
-function renderScan(){
-  $('#scanCnt').textContent = SCAN.total ? `${SCAN.done}/${SCAN.total}건` : `${SCAN.rows.length}건`;
-  $('#scanSeg').hidden = !SCAN.rows.length;
-  if(!SCAN.rows.length && !SCAN.running){
-    $('#scanBody').innerHTML='<div class="empty">왼쪽 [스캔] 메뉴에 기사 URL 목록이나 사이트맵 주소를 넣으세요.</div>';
-    return;
-  }
-  const prog = SCAN.total && SCAN.done<SCAN.total
-    ? `<div class="prog"><i style="transform:scaleX(${SCAN.done/SCAN.total})"></i></div>` : '';
-  const g = scanAgg();
-  const head = `<div class="sum">
-    <div><span>진단</span><b>${g.total}</b></div>
-    <div><span>평균</span><b>${g.total?Math.round(g.ok.reduce((s,r)=>s+r.avg,0)/g.total):0}</b></div>
-    ${AXES.map(a=>`<div><span>${a.name}</span><b style="color:${a.color}">${g.axis[a.k].score}</b></div>`).join('')}
-    ${g.failed?`<div><span>수집 실패</span><b style="color:var(--warn)">${g.failed}</b></div>`:''}
-  </div>`;
-  if(SCAN.view==='sum'){
-    $('#scanBody').innerHTML = prog + renderScanSummary(g);
-    return;
-  }
-  const rows = SCAN.rows.slice().sort(scanCmp);
-  const th=(k,label,cls)=>`<th data-s="${k}" tabindex="0" role="columnheader"${cls?` class="${cls}"`:''}${
-    SCAN.sort===k?` aria-sort="${SCAN.dir>0?'ascending':'descending'}"`:''}>${label}</th>`;
-  const body = rows.map(r=>`<tr>
-    <td class="ti">${r.err
-      ? `<span class="err">${esc(r.err)}</span>`
-      : `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>`}
-      <span class="u">${esc(r.url)}</span></td>
-    ${AXES.map(a=>`<td class="n">${r[a.k]==null?'—':`<span class="sc" style="background:${scColor(r[a.k])}">${r[a.k]}</span>`}</td>`).join('')}
-    <td class="n"><b>${r.avg==null?'—':r.avg}</b></td>
-    <td class="n">${r.chars==null?'—':r.chars}</td>
-  </tr>`).join('');
-  $('#scanBody').innerHTML = head+prog+`<table class="stbl"><thead><tr>
-    ${th('title','기사','ti')}${AXES.map(a=>th(a.k,a.name,'n')).join('')}${th('avg','평균','n')}${th('chars','분량','n')}
-  </tr></thead><tbody>${body}</tbody></table>`;
-}
-function scanCsv(){
-  if(!SCAN.rows.length) return toast('먼저 일괄 진단을 실행하세요');
-  const q = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head = ['url','title','keyword','seo','geo','aeo','neo','avg','chars','error'];
-  const lines = SCAN.rows.map(r=>[r.url,r.title,r.kw,r.seo,r.geo,r.aeo,r.neo,r.avg,r.chars,r.err].map(q).join(','));
-  // 엑셀이 한글을 깨뜨리지 않도록 BOM을 붙인다
-  saveBlob('﻿'+[head.join(','),...lines].join('\r\n'),'text/csv;charset=utf-8',
-    `searchfit-scan-${new Date().toISOString().slice(0,10)}.csv`);
-}
-$('#btnScanCsv').onclick=scanCsv;
-$('#scanSeg').addEventListener('click',e=>{
-  const b=e.target.closest('[data-sv]'); if(!b) return;
-  SCAN.view=b.dataset.sv;
-  $('#scanSeg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-selected', x===b));
-  renderScan();
-});
-$('#btnScanStop').onclick=()=>{ SCAN.running=false; toast('중단 중 — 진행 중인 건까지 마칩니다'); };
-/* 다시 그리면 포커스가 날아가므로 정렬한 헤더로 되돌려 준다 */
-function scanSortBy(k){
-  SCAN.dir = SCAN.sort===k ? -SCAN.dir : 1;
-  SCAN.sort = k;
-  renderScan();
-  const h=$(`.stbl th[data-s="${k}"]`); if(h) h.focus();
-}
-/* 행이 늘 때마다 표를 다시 그리므로 핸들러는 부모에 한 번만 건다 */
-$('#scanBody').addEventListener('click',e=>{
-  const h=e.target.closest('[data-s]'); if(h) scanSortBy(h.dataset.s);
-});
-$('#scanBody').addEventListener('keydown',e=>{
-  if(e.key!=='Enter' && e.key!==' ') return;
-  const h=e.target.closest('[data-s]'); if(!h) return;
-  e.preventDefault();                       // 스페이스로 스크롤이 튀지 않게
-  scanSortBy(h.dataset.s);
-});
 
 /* ── 8. 좌우 폭 조절 ──────────────────────────── */
 const MINW=340;
@@ -1707,24 +1395,6 @@ function selfTest(){
   const rb=diagnose(parse('아무 내용 없는 짧은 글입니다. 그냥 그렇다는 이야기.'),'중고');
   A(rb.seo.score<50,'빈약한 글 SEO 점수');
   A(rb.aeo.score<50,'빈약한 글 AEO 점수');
-  // 부분 점수 — 목표의 절반을 채운 글은 실패가 아니라 절반이다
-  A(band(30,25,35,12)===1 && band(19,25,35,12)===0.5,'구간 점수');
-  A(upto(1,3)===1/3 && upto(5,3)===1,'목표 대비 선형 점수');
-  A(hitRate('중고 거래가 늘었다','중고 수수료')===0.5,'키워드 토큰 부분 일치');
-  A(Math.abs(diagnose(parse('# 가\n\n'+'가'.repeat(450)),'나').seo.items[3].s-0.5)<0.01,'분량 부분 점수');
-  // 이분법이었다면 축 점수가 항목수 배수로만 나온다 — 그 격자에 걸리지 않아야 한다
-  A(!AXES.every(a=>diagnose(good,'중고 거래 수수료')[a.k].score % 25 === 0),'점수 해상도');
-  // 일괄 진단
-  A(looksSitemap('https://a.b/sitemap.xml') && looksSitemap('https://a.b/news-sitemap')
-    && !looksSitemap('https://a.b/news/123'),'사이트맵 주소 판정');
-  A(scColor(70)==='var(--ok)' && scColor(50)==='var(--partial)' && scColor(49)==='var(--warn)','점수 색 구간');
-  // 집계용 라벨은 진단 항목과 하나씩 짝이 맞아야 한다
-  A(AXES.every(a=>ITEM_LABELS[a.k].length===r[a.k].items.length),'항목 라벨 개수 일치');
-  const sr=[{avg:40},{err:'x'},{avg:90}];
-  SCAN.sort='avg'; SCAN.dir=-1;
-  A(sr.slice().sort(scanCmp).map(r=>r.avg??'x').join()==='90,40,x','실패 행은 정렬과 무관하게 아래');
-  SCAN.dir=1;
-  A(sr.slice().sort(scanCmp).map(r=>r.avg??'x').join()==='40,90,x','오름차순에서도 실패 행은 아래');
   const dr=draft(good,'중고 거래 수수료');
   A(dr.title.length<=40,'제목 40자 이내');
   A(dr.faq.length===5,'FAQ 5개');
