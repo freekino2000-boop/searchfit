@@ -316,6 +316,59 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
   .doc h2{font-size:16px;margin-top:var(--s6)}
   input[type=text],input[type=url],input[type=password]{font-size:16px}
 }
+
+/* ── 기사 분해 뷰 ───────────────────────── */
+.decomp{padding:var(--s5);max-width:920px}
+.decomp .dsec{margin:0 0 var(--s6)}
+.decomp .dsec > h3{
+  margin:0 0 var(--s3);font-size:13px;font-weight:700;letter-spacing:.2px;
+  color:var(--on-surface-var);display:flex;align-items:center;gap:8px
+}
+.decomp .dsec > h3 .n{
+  display:inline-grid;place-items:center;width:22px;height:22px;border-radius:var(--r-pill);
+  background:var(--primary);color:#fff;font-size:11px;font-weight:700
+}
+.decomp .fixlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--s2)}
+.decomp .fixlist li{
+  display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:start;
+  background:var(--surface-card);border:1px solid var(--outline-soft);border-radius:var(--r-m);
+  padding:12px 14px;box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.decomp .fixlist .ord{font-family:'Roboto',sans-serif;font-weight:700;font-size:14px;color:var(--on-surface);min-width:1.2em}
+.decomp .pri{
+  font-size:10.5px;font-weight:700;letter-spacing:.3px;border-radius:var(--r-pill);
+  padding:2px 8px;white-space:nowrap;margin-top:2px
+}
+.decomp .pri.p1{background:#fce8e6;color:#b3261e}
+.decomp .pri.p2{background:#feefc3;color:#8a5b00}
+.decomp .pri.p3{background:#e8f0fe;color:#0b57d0}
+.decomp .fixlist .body .ax{font-size:11px;font-weight:700;color:var(--on-surface-var);margin-bottom:2px}
+.decomp .fixlist .body .what{font-weight:500;font-size:13px}
+.decomp .fixlist .body .how{font-size:12px;color:var(--on-surface-var);margin-top:3px;line-height:1.45}
+.decomp .keepgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+@media (max-width:720px){.decomp .keepgrid{grid-template-columns:1fr}}
+.decomp .kcard{
+  background:var(--surface-card);border:1px solid var(--outline-soft);border-radius:var(--r-m);
+  padding:12px 14px;box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.decomp .kcard h4{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--on-surface-var)}
+.decomp .kcard ul{margin:0;padding:0;list-style:none}
+.decomp .kcard li{padding:6px 0;border-bottom:1px solid var(--outline-soft);font-size:12.5px;line-height:1.45}
+.decomp .kcard li:last-child{border-bottom:0;padding-bottom:0}
+.decomp .kcard .empty{color:var(--on-surface-var);font-size:12px}
+.decomp .outline{margin:0;padding:0;list-style:none}
+.decomp .outline li{
+  display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--outline-soft);
+  border-radius:var(--r-m);margin-bottom:var(--s2);background:var(--surface-card);font-size:13px
+}
+.decomp .outline .tag{
+  flex:0 0 auto;font-size:10.5px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;
+  background:var(--secondary-container);color:var(--on-secondary)
+}
+.decomp .outline .tag.keep{background:#e6f4ea;color:#137333}
+.decomp .outline .tag.fix{background:#fce8e6;color:#b3261e}
+.decomp .outline .tag.add{background:#e8f0fe;color:#0b57d0}
+.decomp .lead{font-size:13px;color:var(--on-surface-var);margin:0 0 var(--s5);line-height:1.5}
 </style>
 </head>
 <body>
@@ -363,7 +416,8 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
         <div class="ph">
           <span class="tag">OPTIMIZED</span><span class="nm">재작성</span>
           <div class="seg" id="viewSeg">
-            <button aria-selected="true" data-v="doc">문서</button>
+            <button aria-selected="true" data-v="decomp">분해</button>
+            <button aria-selected="false" data-v="doc">문서</button>
             <button aria-selected="false" data-v="meta">발행 메타</button>
             <button aria-selected="false" data-v="diff">체크</button>
           </div>
@@ -668,11 +722,142 @@ const failed = (r,axis,label) => (r[axis].items.find(i=>i.t.startsWith(label))||
 
 /* 진단에서 미달로 나온 항목을 축별로 재작성본에 반영한다.
    규칙으로 고칠 수 있는 것은 고치고, 사실 추가가 필요한 것은 채울 자리와 지시를 남긴다. */
+
+/* 기사를 전면 분해: 고칠 점(우선순위) · 살릴 부분 · 제안 목차 */
+function decomposeArticle(d,kw,r,dr){
+  const fix=[];
+  const push=(pri,axis,what,how)=>{
+    if(!what) return;
+    fix.push({pri, axis:(axis||'').toUpperCase(), what, how:how||''});
+  };
+  const F=(axis,label)=> r ? (r[axis].items.find(i=>i.t.startsWith(label))||{ok:true}).ok===false : false;
+
+  if(F('seo','제목 길이')||F('neo','제목')||(dr&&dr.title&&d.title&&dr.title!==d.title))
+    push(1,'SEO/NEO','제목을 키워드 앞으로 재구성',
+      `제안: "${dr&&dr.title?dr.title:kw}" · 권장 25~35자 (현재 원제 ${(d.title||'').length}자)`);
+  if(F('aeo','첫 문장')||F('seo','첫 문단에 키워드'))
+    push(1,'AEO/SEO','리드(첫 문장·첫 문단)를 직답형으로',
+      `첫 문장 40~140자, 150자 안에 "${kw}" 자연 노출`);
+  if(F('geo','정의 문장'))
+    push(1,'GEO',`"${kw}" 정의 문장 추가`, `"${kw}${J(kw,'란')} …를 말한다" 한 문장으로 규정`);
+
+  if(F('seo','헤딩 구조')||F('aeo','질문형 소제목'))
+    push(2,'SEO/AEO','소제목을 질문형 h2로 정리', '검색 질문에 그대로 매칭되게 소제목 변환');
+  if(F('neo','평균 문단'))
+    push(2,'NEO','긴 문단을 문장 경계로 분할', '모바일 가독성 — 200자 전후에서 끊기');
+  if(F('seo','본문 분량'))
+    push(2,'SEO','본문 분량 보강 (900자+)', '배경·파급·전망 중 빠진 축을 채움');
+  if(F('geo','구조화 블록'))
+    push(2,'GEO','핵심 사실을 목록·표로 분해', '수치·사실이 든 문장을 불릿으로');
+  if(F('aeo','FAQ 섹션')||!d.faq)
+    push(2,'AEO','FAQ 3~5개 배치', '본문 근거 문장으로 답을 채우고 빈칸만 사람이 보강');
+
+  if(F('geo','인용 가능한 수치'))
+    push(3,'GEO','인용 가능한 수치 3개 이상', '생성형 엔진이 집어가는 1순위');
+  if(F('geo','출처 표기'))
+    push(3,'GEO','출처 표기 보강', '"~에 따르면", "출처:" 형태');
+  if(F('geo','직접 인용'))
+    push(3,'GEO','전문가·관계자 직접 인용', '큰따옴표 + 직함·소속');
+  if(F('geo','권위 주체'))
+    push(3,'GEO','권위 주체(직함·기관) 명시', '신뢰 신호');
+  if(F('seo','링크'))
+    push(3,'SEO','근거 링크·명확한 앵커텍스트', '"여기/자세히" 금지');
+  if(F('seo','이미지')||F('neo','이미지'))
+    push(3,'SEO/NEO','대표 이미지 + alt', '스마트블록·검색 썸네일');
+  if(F('neo','발행 시점')||F('neo','작성자'))
+    push(3,'NEO','작성자·기준 시점 명시', '하단 출처 섹션');
+  if(F('seo','키워드 밀도')||F('neo','키워드 밀도'))
+    push(3,'SEO/NEO','키워드 밀도 조정', '0.4~2.5% (네이버 3% 초과 주의)');
+  if(F('aeo','구조화 데이터'))
+    push(3,'AEO','JSON-LD는 발행 메타 탭에서 head에 부착', '');
+
+  const lead = (d.sentences||[]).find(x=>x.length>=40&&x.length<=140) || (d.sentences||[])[0] || '';
+  const kt = tokens(kw||'');
+  const titleKeep = !!(d.title && kt.length && kt.filter(w=>d.title.includes(w)).length/kt.length>=0.5);
+  const keep = {
+    title: d.title || '',
+    titleKeep,
+    lead,
+    numbers: (d.numbers||[]).slice(0,8),
+    quotes: (d.quotes||[]).slice(0,5),
+    sources: (d.sources||[]).slice(0,5),
+    experts: (d.experts||[]).slice(0,5),
+    headings: (d.headings||[]).filter(h=>h.level>=2).map(h=>h.text).slice(0,8),
+    keepSentences: (d.sentences||[]).filter(x=>/\d/.test(x)||/["“]/.test(x)||(d.sources||[]).some(src=>x.includes(src))).slice(0,6),
+  };
+
+  const outline=[];
+  outline.push({kind: titleKeep?'keep':'fix', label: titleKeep?'제목 유지·미세조정':'제목 재작성', text: (dr&&dr.title)||d.title||kw});
+  outline.push({kind:'add', label:'상단 요약', text:'핵심 3줄 (수치 문장 우선)'});
+  if(F('geo','정의 문장'))
+    outline.push({kind:'add', label:'정의', text:`${kw}${J(kw,'란')} 무엇인가`});
+  (d.secs||[]).forEach((sec,i)=>{
+    const raw = sec.heading || (i===0?`${kw} 본문`:'본문');
+    const h = sec.heading ? qHeading(sec.heading) : raw;
+    const changed = !!(sec.heading && qHeading(sec.heading)!==sec.heading);
+    outline.push({kind: changed?'fix':'keep', label: changed?'소제목 질문형 변환':'원문 섹션 유지', text: h});
+  });
+  if(F('geo','구조화 블록'))
+    outline.push({kind:'add', label:'핵심 정리', text:'수치·사실 불릿'});
+  outline.push({kind:'add', label:'FAQ', text:'자주 묻는 질문 3~5'});
+  if(F('geo','출처 표기')||F('neo','발행 시점')||F('neo','작성자'))
+    outline.push({kind:'add', label:'출처·시점', text:'근거·작성 주체·기준일'});
+
+  return {fix, keep, outline, kw};
+}
+
+function renderDecompose(plan){
+  if(!plan) return '<div class="empty"><p>진단을 실행하면 기사를 고칠 점 · 살릴 부분 · 목차로 분해합니다.</p></div>';
+  const priLabel = p => p===1?'필수':p===2?'중요':'보완';
+  const priClass = p => p===1?'p1':p===2?'p2':'p3';
+  const li = (arr, mapFn) => arr && arr.length ? `<ul>${arr.map(mapFn).join('')}</ul>` : '<div class="empty">원문에서 뚜렷한 항목 없음</div>';
+  const fixes = plan.fix.length ? `<ol class="fixlist">${plan.fix.map((f,i)=>`
+    <li><span class="ord">${i+1}</span><span class="pri ${priClass(f.pri)}">${priLabel(f.pri)}</span>
+      <div class="body"><div class="ax">${esc(f.axis)}</div><div class="what">${esc(f.what)}</div>
+      ${f.how?`<div class="how">${esc(f.how)}</div>`:''}</div></li>`).join('')}</ol>` :
+    '<div class="empty">진단상 즉시 고칠 항목이 없습니다. 원문 골격을 유지하세요.</div>';
+  const k = plan.keep;
+  const keepCards = `
+    <div class="keepgrid">
+      <div class="kcard"><h4>제목 · 리드</h4>
+        <ul>
+          <li><b>제목</b> ${esc(k.title||'(없음)')} ${k.titleKeep?'· <span style="color:var(--ok)">유지 가능</span>':'· <span style="color:var(--warn)">재작성 권장</span>'}</li>
+          <li><b>살릴 리드</b> ${esc(k.lead||'(후보 없음)')}</li>
+        </ul></div>
+      <div class="kcard"><h4>수치</h4>${li(k.numbers, x=>`<li>${esc(x)}</li>`)}</div>
+      <div class="kcard"><h4>인용 · 출처 · 권위</h4>
+        ${li([...(k.quotes||[]).map(x=>'“'+x+'”'),...(k.sources||[]),...(k.experts||[])], x=>`<li>${esc(x)}</li>`)}
+      </div>
+      <div class="kcard"><h4>유지할 핵심 문장</h4>${li(k.keepSentences, x=>`<li>${esc(x)}</li>`)}</div>
+    </div>`;
+  const outline = `<ul class="outline">${plan.outline.map(o=>`
+    <li><span class="tag ${esc(o.kind)}">${o.kind==='keep'?'유지':o.kind==='fix'?'수정':'추가'}</span>
+      <span><b>${esc(o.label)}</b> — ${esc(o.text)}</span></li>`).join('')}</ul>`;
+  return `<div class="decomp">
+    <p class="lead">타깃 키워드 <b>${esc(plan.kw||'—')}</b>. 아래 순서대로 고치고, 표시된 원문 재료는 재작성에서 버리지 마세요.</p>
+    <section class="dsec"><h3><span class="n">1</span>순서대로 고칠 점</h3>${fixes}</section>
+    <section class="dsec"><h3><span class="n">2</span>기본 기사에서 살릴 부분</h3>${keepCards}</section>
+    <section class="dsec"><h3><span class="n">3</span>제안 목차 (재구성 지도)</h3>${outline}</section>
+  </div>`;
+}
+
 function composeMd(d,kw,dr,r){
   const L=[], ch=[], todo=[];
   const AX=(axis,why)=>L.push(`<\!--SF:${axis}|${why}-->`);
   const END=()=>L.push('<\!--SF:/-->');
   const F=(axis,label)=>r ? failed(r,axis,label) : false;
+  const plan = decomposeArticle(d,kw,r,dr);
+  L.push('## 편집 브리프 — 이 순서대로','');
+  plan.fix.forEach((f,i)=>L.push(`${i+1}. **[${f.axis}]** ${f.what}${f.how?' — '+f.how:''}`));
+  if(!plan.fix.length) L.push('1. 원문 골격 유지 · 미세 다듬기만');
+  L.push('');
+  L.push('### 원문에서 살릴 것','');
+  if(plan.keep.title) L.push(`- 제목 재료: ${plan.keep.title}${plan.keep.titleKeep?' (유지 가능)':' (재작성 권장)'}`);
+  if(plan.keep.lead) L.push(`- 리드 후보: ${plan.keep.lead}`);
+  plan.keep.numbers.slice(0,5).forEach(n=>L.push(`- 수치: ${n}`));
+  plan.keep.quotes.slice(0,3).forEach(q=>L.push(`- 인용: "${q}"`));
+  plan.keep.sources.slice(0,3).forEach(src=>L.push(`- 출처: ${src}`));
+  L.push('','---','');
 
   /* ── 제목 (SEO·NEO) ── */
   const titleBad = F('seo','제목 길이') || F('neo','제목');
@@ -777,7 +962,14 @@ function composeMd(d,kw,dr,r){
     todo.forEach(t=>L.push(`- ${t}`));
     L.push('');
   }
-  return {md:L.join('\n'), changes:ch, todo};
+    const ordered = plan.fix.map((f,i)=>`${i+1}. [${f.axis}] ${f.what}`);
+  const seen=new Set();
+  const changes=[];
+  for(const x of [...ordered, ...ch]){
+    const k=String(x).slice(0,72);
+    if(seen.has(k)) continue; seen.add(k); changes.push(x);
+  }
+  return {md:L.join('\n'), changes, todo, plan};
 }
 
 /* 최소 마크다운 렌더러 — 이 앱이 만들어내는 문법(제목·인용·목록·굵게)만 처리한다 */
@@ -953,6 +1145,10 @@ function renderOut(){
     return;
   }
   const view = $('#viewSeg button[aria-selected="true"]').dataset.v;
+  if(view==='decomp'){
+    $('#outWrap').innerHTML = renderDecompose(LAST && LAST.plan);
+    return;
+  }
   if(view==='meta'){
     const m = buildMeta(LAST.d, LAST.kw, STATE.brand, STATE.url);
     const warn = m.desc.ok ? '' :
@@ -1225,12 +1421,14 @@ async function run(){
   STATE.kw = kw;
   const r = diagnose(d,kw);
   const dr = draft(d,kw);
-  LAST={d,r,dr,kw};
   const c = composeMd(d,kw,dr,r);
+  LAST={d,r,dr,kw, plan:c.plan||decomposeArticle(d,kw,r,dr)};
   MD = c.md; CHANGES = c.changes;
+  [...$('#viewSeg').children].forEach(x=>x.setAttribute('aria-selected', x.dataset.v==='decomp'));
   renderPills(r); renderOut();
   if(OPEN==='mDiag'||OPEN==='mInput') openMenu('mDiag');
-  toast('진단 완료 — 오른쪽에 재작성본이 만들어졌습니다');
+  const n=(LAST.plan&&LAST.plan.fix||[]).length;
+  toast(n?`진단 완료 — 고칠 점 ${n}개를 순서대로 정리했습니다`:'진단 완료 — 원문 골격 유지 중심으로 정리했습니다');
 }
 $('#btnRun').onclick=run;
 
@@ -1319,8 +1517,19 @@ function toMarkdown(){
     AXES.map(a=>`| ${a.name} | ${r[a.k].score} | ${gradeOf(r[a.k].score)} |`).join('\n') + '\n';
   const detail = AXES.map(a=>`\n### ${a.name} — ${a.full}\n\n` +
     r[a.k].items.map(c=>`- [${c.ok?'x':' '}] ${c.t}${c.ok?'':` → ${c.f}`}`).join('\n')).join('\n');
+    const plan = (LAST&&LAST.plan) || null;
+  const fixBlock = plan && plan.fix.length
+    ? '\n\n## 순서대로 고칠 점\n\n'+plan.fix.map((f,idx)=>`${idx+1}. **[${f.axis}]** ${f.what}${f.how?' — '+f.how:''}`).join('\n')+'\n'
+    : '';
+  const keepBlock = plan ? ('\n## 원문에서 살릴 부분\n\n'
+    + (plan.keep.title?`- 제목: ${plan.keep.title}\n`:'')
+    + (plan.keep.lead?`- 리드: ${plan.keep.lead}\n`:'')
+    + plan.keep.numbers.slice(0,5).map(n=>`- 수치: ${n}`).join('\n')
+    + (plan.keep.numbers.length?'\n':'')
+    + plan.keep.quotes.slice(0,3).map(q=>`- 인용: "${q}"`).join('\n')
+    + '\n') : '';
   const chg = `\n\n## 무엇을 바꿨나\n\n${CHANGES.map(c=>'- '+c).join('\n')}\n`;
-  return head+scores+'\n## 항목별 진단\n'+detail+chg+'\n\n---\n\n# 재작성 전문\n\n'+cleanMd(MD);
+  return head+scores+fixBlock+keepBlock+'\n## 항목별 진단\n'+detail+chg+'\n\n---\n\n# 재작성 전문\n\n'+cleanMd(MD);
 }
 function saveMd(){
   if(!LAST) return toast('먼저 진단을 실행하세요');
