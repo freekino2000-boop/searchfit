@@ -369,6 +369,16 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
 .decomp .outline .tag.fix{background:#fce8e6;color:#b3261e}
 .decomp .outline .tag.add{background:#e8f0fe;color:#0b57d0}
 .decomp .lead{font-size:13px;color:var(--on-surface-var);margin:0 0 var(--s5);line-height:1.5}
+
+.publish-bar{
+  display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;
+  padding:var(--s4);margin:0 0 var(--s4);
+  background:var(--primary-container);color:var(--on-primary-container);
+  border-radius:var(--r-m);border:1px solid color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.publish-bar .pb-title{font-weight:700;font-size:13px}
+.publish-bar .pb-sub{font-size:12px;opacity:.85;margin-top:2px;line-height:1.4}
+.publish-bar .sp{flex:1}
 </style>
 </head>
 <body>
@@ -416,16 +426,16 @@ input:focus{outline:none;border-bottom:2px solid var(--primary)}
         <div class="ph">
           <span class="tag">OPTIMIZED</span><span class="nm">재작성</span>
           <div class="seg" id="viewSeg">
-            <button aria-selected="true" data-v="decomp">분해</button>
-            <button aria-selected="false" data-v="doc">문서</button>
+            <button aria-selected="true" data-v="doc">발행용</button>
+            <button aria-selected="false" data-v="decomp">분해</button>
             <button aria-selected="false" data-v="meta">발행 메타</button>
             <button aria-selected="false" data-v="diff">체크</button>
           </div>
           <span class="sp"></span>
-          <button class="btn text sm" id="btnCopy">복사</button>
+          <button class="btn text sm" id="btnCopy">기사 복사</button>
         </div>
         <div class="pb" id="outWrap">
-          <div class="empty">진단을 실행하면 최적화된 글이 여기에 만들어집니다.</div>
+          <div class="empty">진단을 실행하면 바로 복사해 올릴 수 있는 발행용 기사가 여기에 나옵니다.</div>
         </div>
       </div>
     </div>
@@ -834,7 +844,7 @@ function renderDecompose(plan){
     <li><span class="tag ${esc(o.kind)}">${o.kind==='keep'?'유지':o.kind==='fix'?'수정':'추가'}</span>
       <span><b>${esc(o.label)}</b> — ${esc(o.text)}</span></li>`).join('')}</ul>`;
   return `<div class="decomp">
-    <p class="lead">타깃 키워드 <b>${esc(plan.kw||'—')}</b>. 아래 순서대로 고치고, 표시된 원문 재료는 재작성에서 버리지 마세요.</p>
+    <p class="lead">타깃 키워드 <b>${esc(plan.kw||'—')}</b>. 발행은 [발행용] 탭에서 기사 복사. 여기는 손질 순서와 살릴 재료만 봅니다.</p>
     <section class="dsec"><h3><span class="n">1</span>순서대로 고칠 점</h3>${fixes}</section>
     <section class="dsec"><h3><span class="n">2</span>기본 기사에서 살릴 부분</h3>${keepCards}</section>
     <section class="dsec"><h3><span class="n">3</span>제안 목차 (재구성 지도)</h3>${outline}</section>
@@ -847,17 +857,7 @@ function composeMd(d,kw,dr,r){
   const END=()=>L.push('<\!--SF:/-->');
   const F=(axis,label)=>r ? failed(r,axis,label) : false;
   const plan = decomposeArticle(d,kw,r,dr);
-  L.push('## 편집 브리프 — 이 순서대로','');
-  plan.fix.forEach((f,i)=>L.push(`${i+1}. **[${f.axis}]** ${f.what}${f.how?' — '+f.how:''}`));
-  if(!plan.fix.length) L.push('1. 원문 골격 유지 · 미세 다듬기만');
-  L.push('');
-  L.push('### 원문에서 살릴 것','');
-  if(plan.keep.title) L.push(`- 제목 재료: ${plan.keep.title}${plan.keep.titleKeep?' (유지 가능)':' (재작성 권장)'}`);
-  if(plan.keep.lead) L.push(`- 리드 후보: ${plan.keep.lead}`);
-  plan.keep.numbers.slice(0,5).forEach(n=>L.push(`- 수치: ${n}`));
-  plan.keep.quotes.slice(0,3).forEach(q=>L.push(`- 인용: "${q}"`));
-  plan.keep.sources.slice(0,3).forEach(src=>L.push(`- 출처: ${src}`));
-  L.push('','---','');
+  // 편집 안내는 분해 탭 전용 — 발행용 본문에는 넣지 않는다
 
   /* ── 제목 (SEO·NEO) ── */
   const titleBad = F('seo','제목 길이') || F('neo','제목');
@@ -1182,8 +1182,27 @@ function renderOut(){
       <div class="diff">${d.html}</div>`;
     return;
   }
-  $('#outWrap').innerHTML = `<article class="doc">${mdToHtml(md)}</article>`;
+  const clean = cleanMd(md);
+  const nFix = (LAST && LAST.plan && LAST.plan.fix) ? LAST.plan.fix.length : 0;
+  const sub = nFix
+    ? `원문 골격 유지 · 검색 최적화 반영. 남은 사람 손질 ${nFix}개는 [분해]에서 순서대로.`
+    : '원문 골격 유지 · 검색 최적화 반영. 바로 복사해 올리세요.';
+  $('#outWrap').innerHTML = `
+    <div class="publish-bar">
+      <div><div class="pb-title">발행용 초안 준비됨</div><div class="pb-sub">${sub}</div></div>
+      <span class="sp"></span>
+      <button class="btn text" id="btnGoDecomp" type="button">고칠 점</button>
+      <button class="btn filled" id="btnCopyArticle" type="button">기사 복사</button>
+    </div>
+    <article class="doc">${mdToHtml(clean)}</article>`;
+  const goDecomp = ()=>{
+    [...$('#viewSeg').children].forEach(x=>x.setAttribute('aria-selected', x.dataset.v==='decomp'));
+    renderOut();
+  };
+  $('#btnGoDecomp').onclick = goDecomp;
+  $('#btnCopyArticle').onclick = ()=>copyArticle(MD, '발행용 기사');
 }
+
 function renderDiag(r){
   if(!r) return '<p class="hint">먼저 [진단 · 재작성 실행]을 누르세요.</p>';
   const cards = AXES.map(a=>{
@@ -1424,11 +1443,10 @@ async function run(){
   const c = composeMd(d,kw,dr,r);
   LAST={d,r,dr,kw, plan:c.plan||decomposeArticle(d,kw,r,dr)};
   MD = c.md; CHANGES = c.changes;
-  [...$('#viewSeg').children].forEach(x=>x.setAttribute('aria-selected', x.dataset.v==='decomp'));
+  [...$('#viewSeg').children].forEach(x=>x.setAttribute('aria-selected', x.dataset.v==='doc'));
   renderPills(r); renderOut();
   if(OPEN==='mDiag'||OPEN==='mInput') openMenu('mDiag');
-  const n=(LAST.plan&&LAST.plan.fix||[]).length;
-  toast(n?`진단 완료 — 고칠 점 ${n}개를 순서대로 정리했습니다`:'진단 완료 — 원문 골격 유지 중심으로 정리했습니다');
+  toast('발행용 기사 준비됨 — [기사 복사]로 바로 올리세요');
 }
 $('#btnRun').onclick=run;
 
