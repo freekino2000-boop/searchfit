@@ -721,31 +721,151 @@ function clip(s,n){s=String(s).replace(/\s+/g,' ').trim();return s.length<=n?s:s
    국립국어원 문법의 의문형 종결어미 기준으로 판별해 중복 변환을 막는다. */
 const Q_END = /([?？]|느냐|더냐|는가|은가|ㄴ가|을까|ㄹ까|는지|을지|ㄹ지|나요|까요|나|까|냐|랴|뇨)$/;
 function isQuestion(t){ return Q_END.test(String(t).trim()); }
-function qHeading(t){
+
+/* 소제목·키워드가 인물/기관/사건/수치/개념 중 무엇인지 기사 맥락으로 가른다 */
+function classifyTopic(text, d){
+  const w = String(text||'').trim();
+  const plain = (d && d.plain) || '';
+  const experts = ((d && d.experts) || []).map(String);
+  const hit = (re) => re.test(w) || re.test(plain.slice(0,400));
+  if(/대표|사장|회장|대통령|의원|장관|교수|감독|선수|CEO|기자|위원장|총리|후보|앵커|작가|감독|선수/.test(w))
+    return 'person';
+  if(experts.some(e => e && (w===e || w.includes(e) || e.includes(w)))) return 'person';
+  if(/^[가-힣]{2,4}$/.test(w) && (experts.length || /(?:씨|님|은|는)\s*.{0,12}(?:말|밝히|주장|강조|발표)/.test(plain)))
+    return 'person';
+  if(/회사|기업|은행|그룹|당|정부|위원회|연준|Fed|법원|검찰|협회|공사|재단|거래소|증권/.test(w))
+    return 'org';
+  if(/발표|공시|판결|선거|상장|합병|인수|회의|브리핑|기자회견|청문회|합의|타결/.test(w))
+    return 'event';
+  if(/\d|%|원|달러|억|조|상승|하락|금리|주가|환율|수익률|인상|인하|폭락|급등/.test(w))
+    return 'figure';
+  if(/우려|논란|리스크|충격|위기|갈등|반발|비판|파문/.test(w))
+    return 'concern';
+  if(/전망|영향|파급|결과|과제|대책|대응|해법|변수|관전\s*포인트/.test(w))
+    return 'outlook';
+  if(/배경|이유|원인|의미|개념|정의|이란|란$/.test(w)) return 'concept';
+  if(/방법|방식|절차|과정|적용/.test(w)) return 'how';
+  return hit(/누구|인물|사람/) ? 'person' : 'concept';
+}
+
+/* 형식적 「~은 어떻게 되나」 대신 주제·멘트에 맞는 질문형 소제목 */
+function qHeading(t, d){
   const w=String(t).trim();
-  // 이미 의문형이거나, 그 자체로 충분히 서술적인 긴 소제목은 건드리지 않는다
   if(isQuestion(w) || w.length>20) return w;
-  return `${w}${J(w,'은')} 어떻게 되나`;
+  if(/[,“"『「]/.test(w) || /했다|한다|되나|인가|할까$/.test(w)) return w;
+  if(w.split(/\s+/).length>=6) return w;
+  const kind = classifyTopic(w, d||null);
+  switch(kind){
+    case 'person':  return `${w}${J(w,'은')} 누구인가`;
+    case 'org':     return `${w}${J(w,'은')} 어떤 곳인가`;
+    case 'event':   return `${w}, 무슨 일인가`;
+    case 'figure':  return `${w}, 얼마나 되나`;
+    case 'concern': return `${w}${J(w,'은')} 왜 불거지나`;
+    case 'outlook': return /과제|대책|해법/.test(w) ? `${w}${J(w,'은')} 어떻게 풀리나` : `${w}${J(w,'은')} 무엇인가`;
+    case 'how':     return `${w}${J(w,'은')} 어떻게 되나`;
+    default:        return /배경|이유|원인|의미|개념/.test(w)
+                      ? `${w}${J(w,'은')} 무엇인가`
+                      : `${w}, 핵심은 무엇인가`;
+  }
+}
+
+/* 정의 섹션 제목 — 인물이면 누구, 기관이면 어떤 곳 */
+function defHeading(kw, d){
+  const k = String(kw||'').trim() || '핵심';
+  const kind = classifyTopic(k, d||null);
+  if(kind==='person') return `${k}${J(k,'은')} 누구인가`;
+  if(kind==='org') return `${k}${J(k,'은')} 어떤 곳인가`;
+  if(kind==='event') return `${k}, 무슨 일인가`;
+  if(kind==='figure') return `${k}, 무엇을 말하나`;
+  return `${k}${J(k,'란')} 무엇인가`;
+}
+
+/* FAQ도 같은 주제 감각으로 */
+function topicFaqs(kw, d){
+  const k = String(kw||'').trim() || '이 이슈';
+  const kind = classifyTopic(k, d||null);
+  if(kind==='person') return [
+    `${k}${J(k,'은')} 누구인가요?`,
+    `${k}${J(k,'이')} 무엇을 했나요?`,
+    `${k}${J(k,'이')} 왜 주목받나요?`,
+    `${k} 관련 수치는 어떻게 되나요?`,
+    `${k}${J(k,'을')} 둘러싼 쟁점은 뭔가요?`,
+  ];
+  if(kind==='org') return [
+    `${k}${J(k,'은')} 어떤 곳인가요?`,
+    `${k}${J(k,'이')} 이번에 무엇을 했나요?`,
+    `${k}${J(k,'이')} 왜 중요한가요?`,
+    `${k} 관련 수치는 어떻게 되나요?`,
+    `${k}의 다음 행보는 뭔가요?`,
+  ];
+  if(kind==='event') return [
+    `${k}, 무슨 일인가요?`,
+    `${k}${J(k,'이')} 왜 터졌나요?`,
+    `누가 관련돼 있나요?`,
+    `수치는 어떻게 나오나요?`,
+    `앞으로 무엇이 달라지나요?`,
+  ];
+  if(kind==='figure') return [
+    `${k}, 얼마나 되나요?`,
+    `${k}${J(k,'이')} 왜 움직이나요?`,
+    `시장·독자에게 의미는 뭔가요?`,
+    `비슷한 사례 수치는요?`,
+    `앞으로 변수는 뭔가요?`,
+  ];
+  // concept / default — 형식적 템플릿을 기사 말투에 가깝게
+  return [
+    `${k}${J(k,'란')} 한 줄로 뭐인가요?`,
+    `${k}${J(k,'이')} 왜 지금 중요한가요?`,
+    `${k}, 핵심 쟁점은 뭔가요?`,
+    `${k} 관련 수치는 어떻게 되나요?`,
+    `${k}의 다음 관전 포인트는요?`,
+  ];
+}
+
+function extractDefSentence(d, kw){
+  const sents = d.sentences || [];
+  const kwHit = s => !kw || has(s, kw) || tokens(kw).some(w=>s.includes(w));
+  const defRe = /(이란|란 |라 함은|를 뜻한다|를 의미한다|는 .{2,40}이다|를 의미해요|을 의미해요|를 뜻해요|이라고 해요|라고 해요|로 알려진|대표이사|CEO|교수|의원|장관)/;
+  const personRe = /(누구|씨|대표|교수|의원|장관|감독)/;
+  let best=null, score=-1;
+  for(const sent of sents){
+    if(sent.length<20 || sent.length>160) continue;
+    if(sent===d.title) continue;
+    let sc=0;
+    if(kwHit(sent)) sc+=3;
+    if(defRe.test(sent)) sc+=4;
+    if(classifyTopic(kw,d)==='person' && personRe.test(sent)) sc+=2;
+    if(/\d/.test(sent)) sc+=1;
+    if(sc>score){ score=sc; best=sent; }
+  }
+  return score>=3 ? best : '';
 }
 function draft(d,kw){
-  const base = d.title || clip(d.sentences[0]||'',34);
-  // 키워드 구성어의 절반 이상이 이미 제목에 있으면 원제를 살린다 — 통째로 덧붙이면 문장이 깨진다
+  const base = (d.title || clip(d.sentences[0]||'',34)).trim();
   const kt = tokens(kw), hit = kt.filter(w=>base.includes(w)).length;
-  const title = clip((kt.length && hit/kt.length >= 0.5) ? base : `${kw} ${base}`, 40);
-  // 잘린 문장은 스니펫으로 쓰이지 못한다 — 40~140자 완결 문장을 우선 고르고, 수치가 든 것을 앞세운다
-  const fit = d.sentences.filter(x=>x.length>=40 && x.length<=140);
+  let title = base;
+  if(kt.length && hit/kt.length < 0.5){
+    if(base.length <= 18) title = clip(`${kw} · ${base}`, 40);
+    else title = base;
+  }
+  if(title.length > 35) title = clip(title, 35);
+
+  const fit = d.sentences.filter(x=>x.length>=40 && x.length<=140 && x!==d.title);
   const ranked = [...fit.filter(x=>/\d/.test(x)), ...fit.filter(x=>!/\d/.test(x))];
-  const tldr = (ranked.length ? ranked : d.sentences.map(x=>clip(x,140))).slice(0,3);
-  const qs = [
-    `${kw}${J(kw,'란')} 무엇인가요?`,
-    `${kw}${J(kw,'이')} 왜 중요한가요?`,
-    `${kw}${J(kw,'은')} 어떻게 적용하나요?`,
-    `${kw} 관련 수치는 어떻게 되나요?`,
-    `${kw}의 최신 동향은 무엇인가요?`,
-  ];
+  const tldr = ranked.slice(0,3);
+
+  const qs = topicFaqs(kw, d);
   const used = new Set();
-  const faq = qs.map(q=>({q, a: bestSentence(d.sentences,q,used,kw) || '(본문에 대응 문장이 없습니다 — 40~140자 직답으로 직접 채우세요)'}));
-  return {title, tldr, faq};
+  const faqAll = qs.map(q=>{
+    const a = bestSentence(d.sentences,q,used,kw);
+    return {q, a: a || '', ok: !!a};
+  });
+  const faq = faqAll.filter(f=>f.ok).slice(0,5);
+  const faqGaps = faqAll.filter(f=>!f.ok).map(f=>f.q);
+
+  const defLine = extractDefSentence(d, kw);
+  const lead = (fit.find(x=>has(x,kw)) || ranked[0] || '');
+  return {title, tldr, faq, faqGaps, defLine, lead, titleKept: title===base};
 }
 
 /* ── 4. 재작성 문서 조립 ──────────────────────────
@@ -784,7 +904,7 @@ function decomposeArticle(d,kw,r,dr){
     push(1,'AEO/SEO','리드(첫 문장·첫 문단)를 직답형으로',
       `첫 문장 40~140자, 150자 안에 "${kw}" 자연 노출`);
   if(F('geo','정의 문장'))
-    push(1,'GEO',`"${kw}" 정의 문장 추가`, `"${kw}${J(kw,'란')} …를 말한다" 한 문장으로 규정`);
+    push(1,'GEO',`"${kw}" 정의·소개 문장 추가`, `제목 톤: ${defHeading(kw,d)} — 인물·기관·개념에 맞게 한 문장`);
 
   if(F('seo','헤딩 구조')||F('aeo','질문형 소제목'))
     push(2,'SEO/AEO','소제목을 질문형 h2로 정리', '검색 질문에 그대로 매칭되게 소제목 변환');
@@ -835,11 +955,11 @@ function decomposeArticle(d,kw,r,dr){
   outline.push({kind: titleKeep?'keep':'fix', label: titleKeep?'제목 유지·미세조정':'제목 재작성', text: (dr&&dr.title)||d.title||kw});
   outline.push({kind:'add', label:'상단 요약', text:'핵심 3줄 (수치 문장 우선)'});
   if(F('geo','정의 문장'))
-    outline.push({kind:'add', label:'정의', text:`${kw}${J(kw,'란')} 무엇인가`});
+    outline.push({kind:'add', label:'정의', text:defHeading(kw,d)});
   (d.secs||[]).forEach((sec,i)=>{
     const raw = sec.heading || (i===0?`${kw} 본문`:'본문');
-    const h = sec.heading ? qHeading(sec.heading) : raw;
-    const changed = !!(sec.heading && qHeading(sec.heading)!==sec.heading);
+    const h = sec.heading ? qHeading(sec.heading, d) : raw;
+    const changed = !!(sec.heading && qHeading(sec.heading, d)!==sec.heading);
     outline.push({kind: changed?'fix':'keep', label: changed?'소제목 질문형 변환':'원문 섹션 유지', text: h});
   });
   if(F('geo','구조화 블록'))
@@ -892,87 +1012,109 @@ function composeMd(d,kw,dr,r){
   const END=()=>L.push('<\!--SF:/-->');
   const F=(axis,label)=>r ? failed(r,axis,label) : false;
   const plan = decomposeArticle(d,kw,r,dr);
-  // 편집 안내는 분해 탭 전용 — 발행용 본문에는 넣지 않는다
 
-  /* ── 제목 (SEO·NEO) ── */
+  /* ── 제목 — 원제 우선 ── */
   const titleBad = F('seo','제목 길이') || F('neo','제목');
-  if(dr.title!==d.title || titleBad){
-    if(dr.title!==d.title) ch.push(`제목 교체 — "${dr.title}"`);
-    AX('SEO,NEO', titleBad
-      ? `제목이 권장 길이를 벗어났습니다(현재 ${dr.title.length}자). 구글은 25~35자, 네이버는 25자 안팎에서 잘립니다. 핵심 키워드를 앞으로 당기고 군더더기를 덜어내세요.`
-      : '타깃 키워드를 제목 앞쪽에 넣어 검색 노출을 잡는 자리입니다.');
-    if(titleBad) ch.push(`제목 길이 ${dr.title.length}자 — 25~35자로 다듬을 것 (SEO·NEO)`);
+  if(dr.title!==d.title){
+    ch.push(`제목 제안 — "${dr.title}" (어색하면 원제 유지)`);
+    AX('SEO,NEO','검색어가 잘 보이게 다듬은 제안입니다. 문장이 깨지면 원제를 쓰세요.');
+  } else if(titleBad){
+    ch.push(`제목 길이 ${dr.title.length}자 — 25~35자로 다듬을 것`);
+    AX('SEO,NEO', `제목이 권장 길이를 벗어났습니다(현재 ${dr.title.length}자).`);
   }
   L.push(`# ${dr.title}`,''); END();
 
-  /* ── 요약 (AEO·GEO) ── */
-  if(dr.tldr.length){
-    ch.push(`상단 핵심 요약 ${dr.tldr.length}줄 추가 (AEO)`);
-    AX('AEO,GEO','검색 답변·AI 요약으로 그대로 발췌되는 자리입니다. 수치가 든 문장을 우선 골라 인용 가능성을 높였습니다.');
-    L.push(`> **핵심 ${dr.tldr.length}줄 요약**`);
+  /* ── 요약 — 원문 문장만 ── */
+  if(dr.tldr && dr.tldr.length){
+    ch.push(`상단 요약 ${dr.tldr.length}줄 — 원문 재배치`);
+    AX('AEO,GEO','원문 문장을 위에 모았습니다. 새로 쓰지 않았습니다.');
+    L.push(`> **한눈에 보기**`);
     dr.tldr.forEach(t=>L.push(`> - ${t}`));
     L.push(''); END();
   }
 
-  /* ── 용어 정의 (GEO) ── */
+  /* ── 소개·정의 — 본문 문장 있을 때만 ── */
   if(F('geo','정의 문장')){
-    ch.push(`"${kw}" 정의 자리 추가 (GEO)`);
-    AX('GEO','생성형 검색이 가장 먼저 인용하는 것이 정의 문장입니다. 한 문장으로 개념을 규정해 주세요.');
-    L.push(`## ${kw}${J(kw,'란')} 무엇인가`,'',
-      `${kw}${J(kw,'은')} [한 문장으로 정의해 주세요 — "${kw}${J(kw,'란')} …를 말한다" 형태].`,'');
-    END();
+    const def = dr.defLine || extractDefSentence(d, kw);
+    if(def){
+      ch.push('소개 문장 상단 배치 — 원문 활용');
+      AX('GEO','본문에 있던 소개·정의 문장을 앞에 두었습니다.');
+      L.push(`## ${defHeading(kw,d)}`,'', def, ''); END();
+    } else {
+      ch.push(`"${kw}" 소개 한 줄이 본문에 없어 발행용에서는 생략`);
+    }
   }
 
-  /* ── 본문 (NEO 문단 분할) ── */
+  /* ── 본문 — 골격 유지 ── */
   const splitPara = F('neo','평균 문단');
-  let qc=0, splitCount=0;
+  let qc=0, splitCount=0, leadDone=false;
+  if((F('aeo','첫 문장')||F('seo','첫 문단에 키워드')) && dr.lead){
+    AX('AEO,SEO','원문에서 고른 직답형 리드입니다.');
+    L.push(dr.lead,''); END();
+    leadDone=true;
+    ch.push('리드 문장 재배치 — 원문 활용');
+  }
   (d.secs||[]).forEach(sec=>{
     if(sec.heading){
-      const q=qHeading(sec.heading);
-      if(q!==sec.heading){ qc++; AX('AEO','소제목을 실제 검색 질문 형태로 바꾼 자리입니다. 질문에 그대로 매칭돼 답변으로 뽑힙니다.'); L.push(`## ${q}`,''); END(); }
-      else L.push(`## ${q}`,'');
-    } else if(!F('geo','정의 문장')){
-      AX('AEO','핵심 개념을 먼저 정의하는 도입 섹션입니다.');
-      L.push(`## ${kw}${J(kw,'란')} 무엇인가`,''); END();
+      const q=qHeading(sec.heading, d);
+      if(q!==sec.heading){
+        qc++;
+        AX('AEO','주제 맞춤 질문형 소제목입니다. 어색하면 원 소제목을 쓰세요.');
+        L.push(`## ${q}`,''); END();
+      } else L.push(`## ${q}`,'');
     }
-    (sec.paras.length?sec.paras:['[본문 보강 필요]']).forEach(p=>{
+    (sec.paras||[]).forEach(p=>{
+      if(!p || !String(p).trim()) return;
+      if(leadDone && String(p).trim()===dr.lead) return;
       const parts = splitPara ? splitLong(p,200) : [p];
       if(parts.length>1) splitCount += parts.length-1;
       parts.forEach(x=>L.push(x,''));
     });
   });
-  if(qc) ch.push(`소제목 ${qc}개를 질문형으로 변환 (AEO)`);
-  if(splitCount) ch.push(`긴 문단 ${splitCount}곳을 문장 경계로 분할 (NEO 모바일 가독성)`);
-  ch.push('헤딩을 h1 하나 + h2 구조로 정리 (SEO)');
+  if(qc) ch.push(`소제목 ${qc}곳을 주제 맞춤으로 조정`);
+  if(splitCount) ch.push(`긴 문단 ${splitCount}곳 분할 (모바일 가독성)`);
 
-  /* ── 핵심 정리 리스트 (GEO 구조화 블록) ── */
+  /* ── 수치 목록 — 있을 때만 ── */
   if(F('geo','구조화 블록')){
-    ch.push('핵심 정리 목록 추가 (GEO 구조화 블록)');
-    AX('GEO','사실을 목록으로 분해해 두면 생성형 엔진이 항목 단위로 인용합니다.');
-    L.push('## 핵심 정리','');
-    const facts = d.sentences.filter(x=>/\d/.test(x)).slice(0,3);
-    (facts.length?facts:['[핵심 사실을 3개로 정리해 주세요]']).forEach(x=>L.push(`- ${x}`));
-    L.push(''); END();
+    const facts = d.sentences.filter(x=>/\d/.test(x) && x!==d.title).slice(0,5);
+    if(facts.length){
+      ch.push(`핵심 수치 ${facts.length}개 목록 재배치`);
+      AX('GEO','원문 수치 문장만 모았습니다.');
+      L.push('## 숫자로 보는 포인트','');
+      facts.forEach(x=>L.push(`- ${x}`));
+      L.push(''); END();
+    } else ch.push('구조화용 수치가 본문에 부족 — 생략');
   }
 
-  /* ── FAQ (AEO) ── */
-  const answered = dr.faq.filter(f=>!f.a.startsWith('(')).length;
-  ch.push(`자주 묻는 질문 ${dr.faq.length}개 추가 — 본문 근거 ${answered}개, 직접 작성 필요 ${dr.faq.length-answered}개 (AEO)`);
-  AX('AEO','답변 엔진이 질문-답 쌍을 통째로 가져가며, FAQPage 구조화 데이터의 재료가 됩니다.');
-  L.push('## 자주 묻는 질문','');
-  dr.faq.forEach(f=>{ L.push(`### ${f.q}`, f.a, ''); });
-  END();
-
-  /* ── 출처·기준 시점 (GEO·NEO) ── */
-  const needSrc = F('geo','출처 표기'), needDate = F('neo','발행 시점'), needBy = F('neo','작성자');
-  if(needSrc || needDate || needBy){
-    ch.push('출처·기준 시점 섹션 추가 (GEO·NEO)');
-    AX('GEO,NEO','근거와 시점, 작성 주체를 밝혀야 신뢰 문서로 분류되고 인용도 됩니다.');
-    L.push('## 출처와 기준 시점','');
-    L.push(`- 기준 시점: ${new Date().toISOString().slice(0,10)}`);
-    L.push(`- 작성: ${needBy ? '[기자·필자 또는 기관명을 넣으세요]' : (d.author?'원문 표기 유지':'[작성 주체를 넣으세요]')}`);
-    L.push(`- 근거 자료: ${needSrc ? '[원문·통계·발표자료 출처를 넣으세요]' : d.sources.slice(0,3).join(', ')}`,'');
+  /* ── FAQ — 답 있는 문항만 ── */
+  if(dr.faq && dr.faq.length){
+    ch.push(`FAQ ${dr.faq.length}개 — 본문 근거 있는 문항만`);
+    AX('AEO','원문에서 답을 찾은 질문만 넣었습니다.');
+    L.push('## 함께 보면 좋은 질문','');
+    dr.faq.forEach(f=>{ L.push(`### ${f.q}`, f.a, ''); });
     END();
+  } else if(dr.faqGaps && dr.faqGaps.length){
+    ch.push(`FAQ 후보 ${dr.faqGaps.length}개는 본문에 답이 없어 생략`);
+  }
+
+  /* ── 출처·시점 — 원문 값 우선 ── */
+  const needSrc = F('geo','출처 표기'), needDate = F('neo','발행 시점'), needBy = F('neo','작성자');
+  if(needSrc || needDate || needBy || (d.sources&&d.sources.length) || d.author || (d.dates&&d.dates.length)){
+    const when = (d.dates && d.dates[0]) || '';
+    const who = d.author || ((d.experts&&d.experts[0]) || '');
+    const srcs = (d.sources||[]).slice(0,3);
+    if(when || who || srcs.length){
+      ch.push('출처·시점 — 원문 값 반영');
+      AX('GEO,NEO','원문에 있던 시점·출처·인물을 모았습니다.');
+      L.push('## 출처와 기준 시점','');
+      if(when) L.push(`- 기준 시점: ${when} (원문)`);
+      else if(needDate) ch.push('발행 시점이 원문에 없음');
+      if(who) L.push(`- 작성·언급: ${who}`);
+      else if(needBy) ch.push('작성자·매체가 원문에 없음');
+      if(srcs.length) L.push(`- 근거 자료: ${srcs.join(', ')}`);
+      else if(needSrc) ch.push('출처 표기가 원문에 부족');
+      L.push(''); END();
+    }
   }
 
   /* ── 사실 추가가 필요해 규칙으로 못 고치는 것 ── */
@@ -990,6 +1132,10 @@ function composeMd(d,kw,dr,r){
     add('neo','키워드 밀도','밀도가 3%를 넘으면 네이버 어뷰징 필터에 걸립니다.');
     add('aeo','첫 문장','첫 문장을 40~140자 직답으로 바꾸면 스니펫을 선점합니다.');
     if(failed(r,'aeo','구조화 데이터')) todo.push('**AEO** JSON-LD는 [발행 메타] 탭에서 만들어 페이지 head에 붙이세요.');
+  
+    if(dr.faqGaps && dr.faqGaps.length){
+      dr.faqGaps.slice(0,3).forEach(q=>todo.push('**FAQ** 본문에 답 없음 — '+q));
+    }
   }
   if(todo.length){
     L.push('<\!--SF:TODO-->');
@@ -1685,14 +1831,16 @@ function selfTest(){
   A(stem('회의')==='회의','1자만 남는 분리는 하지 않는다');
   A(stem('코인원')==='코인원','조사 없는 말은 그대로');
   A(autoKeyword(parse('# 부담에도 수수료 인상\n\n수수료 부담이 커졌다. 수수료를 올린 배경은 무엇인가. 수수료 논란이 이어진다.'))==='수수료','키워드 자동 추출 — 조사 제거 후 빈도');
-  A(qHeading('남은 과제')==='남은 과제는 어떻게 되나','조사 는');
+  A(qHeading('남은 과제')==='남은 과제는 어떻게 풀리나','outlook 과제');
   A(qHeading('부담은 어디서 오나')==='부담은 어디서 오나','의문형 소제목은 그대로 둔다');
   A(qHeading('수수료는 더 오를까')==='수수료는 더 오를까','의문형 — 을까');
   A(qHeading('무엇이 달라졌는가')==='무엇이 달라졌는가','의문형 — 는가');
   A(!isQuestion('남은 변수') && !isQuestion('이용자 이탈 우려'),'평서형 소제목 판정');
   A(qHeading('주식투자 바로가기에 이어 두 번째 협업')==='주식투자 바로가기에 이어 두 번째 협업','긴 소제목은 그대로 둔다');
-  A(qHeading('이용자 이탈 우려')==='이용자 이탈 우려는 어떻게 되나','조사 는(모음)');
-  A(qHeading('수수료 인상')==='수수료 인상은 어떻게 되나','조사 은');
+  A(qHeading('이용자 이탈 우려')==='이용자 이탈 우려는 왜 불거지나','concern');
+  A(qHeading('수수료 인상')==='수수료 인상, 얼마나 되나','figure');
+  A(qHeading('김철수 대표')==='김철수 대표는 누구인가','person');
+  A(defHeading('김철수',{experts:['김철수'],plain:'김철수 대표가 밝혔다'})==='김철수는 누구인가','def person');
   const r=diagnose(good,'중고 거래');
   A(r.geo.score>=66,'좋은 글 GEO 점수: '+r.geo.score);
   const rb=diagnose(parse('아무 내용 없는 짧은 글입니다. 그냥 그렇다는 이야기.'),'중고');
@@ -1732,9 +1880,9 @@ function selfTest(){
   A(splitLong(longP,200).length>1,'긴 문단은 분할');
   A(splitLong(longP,200).every(x=>x.length<=260),'분할 후 길이 관리');
   const dj=draft(parse('# 부담에도 수수료 인상\n\n수수료 부담이 커졌다는 지적이 나온다. 업계는 인상이 불가피하다고 설명했다.'),'부담');
-  A(dj.faq[0].q==='부담이란 무엇인가요?','FAQ 조사 — 이란');
-  A(dj.faq[1].q==='부담이 왜 중요한가요?','FAQ 조사 — 이');
-  A(dj.faq[2].q==='부담은 어떻게 적용하나요?','FAQ 조사 — 은');
+  A(dj.faq[0].q.includes('부담'),'FAQ 주제 질문 생성');
+  A(dj.faq.length>=1,'FAQ 본문근거 문항 1개 이상');
+  A(/부담/.test(dj.faq[2].q),'FAQ 3번째도 주제 유지');
   const rn=diagnose(parse('# 아주아주아주아주아주아주아주아주 긴 제목입니다 네이버 기준을 넘김\n\n짧은 본문.'),'제목');
   A(rn.neo.items[0].ok===false,'NEO 제목 25자 초과 감지');
   A(diagnose(good,'수수료').neo.items.length===6,'NEO 항목 6개');
